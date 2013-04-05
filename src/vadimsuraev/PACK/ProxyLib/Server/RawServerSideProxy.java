@@ -121,4 +121,9 @@ public class RawServerSideProxy extends ServerSideProxy
 			OnNonProprietarySegmentTransmitted(count);
 		}
 	}
+	@Override
+	public void OnConnected() {
+		// TODO Auto-generated method stub
+		
+	}
 }

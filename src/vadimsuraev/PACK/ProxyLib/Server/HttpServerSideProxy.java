@@ -6,7 +6,6 @@ import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
-import java.util.Map;
 
 import vadimsuraev.LogUtility.*;
 import vadimsuraev.PACK.ProxyLib.ProxySocket;
@@ -27,11 +26,13 @@ public class HttpServerSideProxy extends ServerSideProxy
 	private String m_HttpRequestType;
 	/// <summary>Holds the POST data</summary>
 	private String m_HttpPost;
+	private String m_Host;
 	public HttpServerSideProxy(SocketChannel sock)
 	{
 		super(sock);
 		m_Id = sock.socket().getRemoteSocketAddress();
 		m_RequestedPath = null;
+		m_Host = "";
 		HttpReqCleanUp();
 	}
 	void HttpReqCleanUp()
@@ -157,7 +158,7 @@ public class HttpServerSideProxy extends ServerSideProxy
 		String ret = m_HttpRequestType + " " + m_RequestedPath + " " + m_HttpVersion + "\r\n";
 		if (m_HeaderFields != null)
 		{
-			Iterator<String> itr = m_HeaderFields.values().iterator();
+			Iterator<String> itr = m_HeaderFields.keySet().iterator();
 			while(itr.hasNext())
 			{
 				String sc = itr.next();
@@ -179,14 +180,13 @@ public class HttpServerSideProxy extends ServerSideProxy
 			return;
 		}
 		int Port;
-		String Host;
 		int Ret;
 		if (m_HttpRequestType.toUpperCase().equals("CONNECT"))
 		{ //HTTPS
 			Ret = m_RequestedPath.indexOf(":");
 			if (Ret >= 0)
 			{
-				Host = m_RequestedPath.substring(0, Ret);
+				m_Host = m_RequestedPath.substring(0, Ret);
 				if (m_RequestedPath.length() > Ret + 1)
 					Port = Integer.parseInt(m_RequestedPath.substring(Ret + 1));
 				else
@@ -194,21 +194,21 @@ public class HttpServerSideProxy extends ServerSideProxy
 			}
 			else
 			{
-				Host = m_RequestedPath;
+				m_Host = m_RequestedPath;
 				Port = 443;
 			}
 		}
 		else
 		{ //Normal HTTP
-			Ret = ((String)m_HeaderFields.get("Host")).indexOf(":");
-			if (Ret > 0)
+			m_Host = (String)m_HeaderFields.get("Host");
+			Ret = m_Host.indexOf(":");
+			if(Ret >= 0)
 			{
-				Host = ((String)m_HeaderFields.get("Host")).substring(0, Ret);
-				Port = Integer.parseInt(((String)m_HeaderFields.get("Host")).substring(Ret + 1));
+				m_Host = m_Host.substring(0,Ret);
+				Port = Integer.parseInt(m_Host.substring(Ret+1));
 			}
 			else
 			{
-				Host = (String)m_HeaderFields.get("Host");
 				Port = 80;
 			}
 			if (m_HttpRequestType.toUpperCase().equals("POST"))
@@ -224,7 +224,7 @@ public class HttpServerSideProxy extends ServerSideProxy
 			InetSocketAddress DestinationEndPoint;
 			try
 			{
-				addr = InetAddress.getAllByName(Host);
+				addr = InetAddress.getAllByName(m_Host);
 			}
 			catch(UnknownHostException exc)
 			{
@@ -236,7 +236,7 @@ public class HttpServerSideProxy extends ServerSideProxy
 			}
 			else
 			{
-				LogUtility.LogFile(m_Id.toString() + " Cannotget IP address " + Host, LogUtility.LogLevels.LEVEL_LOG_HIGH);
+				LogUtility.LogFile(m_Id.toString() + " Cannotget IP address " + m_Host, LogUtility.LogLevels.LEVEL_LOG_HIGH);
 				SendBadRequest();
 				return;
 			}
@@ -251,28 +251,11 @@ public class HttpServerSideProxy extends ServerSideProxy
 			}
 			LogUtility.LogFile(m_Id.toString() + " Trying to connect destination " + DestinationEndPoint.toString(), ModuleLogLevel);
 			m_destinationSideSocket.Connect(DestinationEndPoint);
-			LogUtility.LogFile(m_Id.toString() + " destination connected ", ModuleLogLevel);
-			m_OnceConnected = true;
-			//QueueElement queueElement = new QueueElement();
-			if (m_HttpRequestType.toUpperCase().equals("CONNECT"))
-			{ //HTTPS
-				ProprietarySegmentSubmitStream4Tx((m_HttpVersion + " 200 Connection established\r\nProxy-Agent: Vadim Suraev Proxy Server\r\n\r\n").getBytes());
-				//ProprietarySegmentTransmit();
-			}
-			else
-			{
-				LogUtility.LogFile(m_Id.toString() + " Submit to tx to destination ", ModuleLogLevel);
-				NonProprietarySegmentSubmitStream4Tx(RebuildQuery().getBytes());
-				//NonProprietarySegmentTransmit();
-			}
-			m_RequestedPath = Host + " " + m_RequestedPath;
-			HttpReqCleanUp();
 		}
 		catch(Exception exc)
 		{
 			LogUtility.LogFile(m_Id.toString() + " EXCEPTION " + exc.getMessage(), LogUtility.LogLevels.LEVEL_LOG_HIGH);
 			SendBadRequest();
-			return;
 		}
 	}
 	HashMap<String,String> ParseQuery()
@@ -318,7 +301,11 @@ public class HttpServerSideProxy extends ServerSideProxy
 			{
 				try
 				{
-					retdict.put(Lines[Cnt].substring(0, Ret), Lines[Cnt].substring(Ret + 1).trim());
+					String key;
+					String val;
+					key = Lines[Cnt].substring(0, Ret);
+					val = Lines[Cnt].substring(Ret + 1).trim();
+					retdict.put(key, val);
 				}
 				catch(Exception exc)
 				{
@@ -330,17 +317,61 @@ public class HttpServerSideProxy extends ServerSideProxy
 	}
 	@Override
 	public void OnMsgReceived() {
-		// TODO Auto-generated method stub
-		
+		OnProprietarySegmentMsgReceived();
 	}
 	@Override
 	public void OnRead(Object data, int count) {
-		// TODO Auto-generated method stub
-		
+		Boolean isPropSeg = (Boolean)data;
+		if(isPropSeg)
+		{
+			OnProprietarySegmentReceived(count);
+		}
+		else
+		{
+			OnNonProprietarySegmentReceived(count);
+		}
 	}
 	@Override
 	public void OnWritten(Object data, int count) {
-		// TODO Auto-generated method stub
-		
+		Boolean isPropSeg = (Boolean)data;
+		if(isPropSeg)
+		{
+			OnProprietarySegmentTransmitted(count);
+		}
+		else
+		{
+			OnNonProprietarySegmentTransmitted(count);
+		}
+	}
+	@Override
+	public void OnConnectionBroken(Object data) {
+		Boolean isProp = (Boolean)data;
+		if(isProp)
+		{
+			OnDestinationDisconnected();
+		}
+		else
+		{
+			OnClientDisconnected();
+		}
+	}
+	@Override
+	public void OnConnected() {
+		LogUtility.LogFile(m_Id.toString() + " destination connected ", ModuleLogLevel);
+		m_OnceConnected = true;
+		//QueueElement queueElement = new QueueElement();
+		if (m_HttpRequestType.toUpperCase().equals("CONNECT"))
+		{ //HTTPS
+			ProprietarySegmentSubmitStream4Tx((m_HttpVersion + " 200 Connection established\r\nProxy-Agent: Vadim Suraev Proxy Server\r\n\r\n").getBytes());
+			//ProprietarySegmentTransmit();
+		}
+		else
+		{
+			LogUtility.LogFile(m_Id.toString() + " Submit to tx to destination ", ModuleLogLevel);
+			NonProprietarySegmentSubmitStream4Tx(RebuildQuery().getBytes());
+			NonProprietarySegmentTransmit();
+		}
+		m_RequestedPath = m_Host + " " + m_RequestedPath;
+		HttpReqCleanUp();
 	}
 }

@@ -11,6 +11,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.AbstractSelectableChannel;
 import java.util.LinkedList;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import vadimsuraev.LogUtility.LogUtility;
@@ -124,6 +125,7 @@ public class ProxySocket
     {
     	m_SocketThread.SubmitAction(SelectionKey.OP_CONNECT, m_SocketChannel, sa, this);
     }
+    
     public boolean Bind(SocketAddress sa)
     {
     	ServerSocket serverSocket = ((ServerSocketChannel)m_SocketChannel).socket();
@@ -139,6 +141,10 @@ public class ProxySocket
     public void AcceptAsync()
     {
     	m_SocketThread.SubmitAction(SelectionKey.OP_ACCEPT, m_SocketChannel, false, this);
+    }
+    public void OnConnected()
+    {
+    	m_SocketCallbacks.OnConnected();
     }
     public void OnAccept()
     {
@@ -170,6 +176,10 @@ public class ProxySocket
     	int bytesRead = 0;
     	try {
     		bytesRead = ((SocketChannel)m_SocketChannel).read(dst);
+    		if(bytesRead != count)
+    		{
+    			LogUtility.LogFile("Actually read " + Long.toString(bytesRead) + " needed " + Long.toString(count), LogUtility.LogLevels.LEVEL_LOG_HIGH);
+    		}
 		} catch (IOException e) {
 			m_SocketCallbacks.OnConnectionBroken(m_data);
 			return;
@@ -183,22 +193,38 @@ public class ProxySocket
     	m_WriteMutex.lock();
     	while(!m_txQueue.isEmpty())
     	{
-    		TxQueueEntry txQueueEntry = m_txQueue.remove();
+    		TxQueueEntry txQueueEntry = m_txQueue.element();
     		ByteBuffer src = ByteBuffer.wrap(txQueueEntry.GetBuffer());
     		src.position(txQueueEntry.GetOffset());
     		src.limit(txQueueEntry.GetOffset() + txQueueEntry.GetCount());
     		try 
     		{
+    			if(((SocketChannel)m_SocketChannel).socket().getSendBufferSize() < txQueueEntry.GetCount())
+    			{
+    				LogUtility.LogFile("Send buffer is smaller!!! " + Long.toString(((SocketChannel)m_SocketChannel).socket().getSendBufferSize()) + " required " + Long.toString(src.remaining()) + " " + Long.toString(txQueueEntry.GetCount()), LogUtility.LogLevels.LEVEL_LOG_HIGH);
+    				((SocketChannel)m_SocketChannel).socket().setSendBufferSize(src.remaining());
+    			}
+    			else
+    			{
+    				LogUtility.LogFile("Send buffer is ok!!! " + Long.toString(((SocketChannel)m_SocketChannel).socket().getSendBufferSize()) + " required " + Long.toString(src.remaining()) + " " + Long.toString(txQueueEntry.GetCount()), LogUtility.LogLevels.LEVEL_LOG_HIGH);
+    			}
 				int writtenThisTime = ((SocketChannel)m_SocketChannel).write(src);
 				if(writtenThisTime <= 0)
 				{
+					LogUtility.LogFile("write failed ", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
 					break;
 				}
+				if(writtenThisTime != txQueueEntry.GetCount())
+	    		{
+	    			LogUtility.LogFile("Actually written " + Long.toString(writtenThisTime) + " needed " + Long.toString(txQueueEntry.GetCount()), LogUtility.LogLevels.LEVEL_LOG_HIGH);
+	    		}
 				written += writtenThisTime;
+				m_txQueue.removeFirst();
 			} 
     		catch (IOException e) 
     		{
     			m_WriteMutex.unlock();
+    			e.printStackTrace();
     			m_SocketCallbacks.OnConnectionBroken(m_data);
     			return;
 			}
@@ -331,5 +357,10 @@ public class ProxySocket
     	sa = new InetSocketAddress(((SocketChannel)m_SocketChannel).socket().getLocalAddress(),
     			((SocketChannel)m_SocketChannel).socket().getLocalPort());
     	return sa;
+    }
+    
+    public String GetName()
+    {
+    	return m_name;
     }
 }

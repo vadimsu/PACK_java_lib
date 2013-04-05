@@ -505,4 +505,10 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
 			OnClientDisconnected();
 		}
 	}
+
+	@Override
+	public void OnConnected() {
+		// TODO Auto-generated method stub
+		
+	}
 }

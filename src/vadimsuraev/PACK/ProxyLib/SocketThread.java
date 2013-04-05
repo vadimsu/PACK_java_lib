@@ -15,6 +15,8 @@ import java.util.LinkedList;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
+import vadimsuraev.LogUtility.LogUtility;
+
 class SocketThread extends Thread
 {
 	/**
@@ -86,7 +88,7 @@ class SocketThread extends Thread
 		m_ActionQueueMutex.lock();
 		m_ActionQueue.add(entry);
 		m_ActionQueueMutex.unlock();
-		m_selector.wakeup();
+		//m_selector.wakeup();
 	}
 	
 	ActionRequestQueueEntry DequeueAction()
@@ -114,6 +116,8 @@ class SocketThread extends Thread
 		}
 		try {
 			sc.configureBlocking(false);
+			ProxySocket ps = entry.GetProxySocketInstance();
+			ps.OnConnected();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -132,10 +136,13 @@ class SocketThread extends Thread
 			{
 				ops = sk.interestOps();
 			}
+			else
+			{
+				//LogUtility.LogFile("ERROR: selector is  " + ((m_selector == null) ? "null " : " not null") + " registered " + Boolean.toString(sc.isRegistered()), LogUtility.LogLevels.LEVEL_LOG_HIGH);
+			}
 			sk = sc.register(m_selector, ops | SelectionKey.OP_READ);
 		} catch (ClosedChannelException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LogUtility.LogFile("EXCEPTION " + e.getMessage(), LogUtility.LogLevels.LEVEL_LOG_HIGH);
 		}
 		if(sk != null)
 		{
@@ -143,7 +150,7 @@ class SocketThread extends Thread
 		}
 		else
 		{
-			System.out.println("Attachment is null ");
+			LogUtility.LogFile("ERROR: attachment is null ", LogUtility.LogLevels.LEVEL_LOG_HIGH);
 		}
 //		System.out.println("Registered for read ");
 	}
@@ -159,10 +166,13 @@ class SocketThread extends Thread
 			{
 				ops = sk.interestOps();
 			}
+			else
+			{
+				//LogUtility.LogFile("ERROR: selector is  " + ((m_selector == null) ? "null " : " not null") + " registered " + Boolean.toString(sc.isRegistered()), LogUtility.LogLevels.LEVEL_LOG_HIGH);
+			}
 			sk = sc.register(m_selector, ops | SelectionKey.OP_WRITE);
 		} catch (ClosedChannelException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LogUtility.LogFile("EXCEPTION " + e.getMessage(), LogUtility.LogLevels.LEVEL_LOG_HIGH);
 		}
 		if(sk != null)
 		{
@@ -170,7 +180,7 @@ class SocketThread extends Thread
 		}
 		else
 		{
-			System.out.println("Attachment is null ");
+			LogUtility.LogFile("ERROR: attachment is null ", LogUtility.LogLevels.LEVEL_LOG_HIGH);
 		}
 //		System.out.println("Registered for write ");
 	}
@@ -218,25 +228,29 @@ class SocketThread extends Thread
 				readyChannels = m_selector.select(500);
 				//System.out.println(" Proxy socket, got " + readyChannels + " channels");
 				m_ActionQueueMutex.lock();
+				if(m_ActionQueue.size() > 0)
+				{
+				    LogUtility.LogFile("selector returned " + Long.toString(m_ActionQueue.size()), LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+				}
 				while(m_ActionQueue.size() > 0)
 				{
 					entry = m_ActionQueue.removeFirst();
 					switch(entry.GetOp())
 					{
 					case SelectionKey.OP_ACCEPT:
-						System.out.println("Got accept op");
+						LogUtility.LogFile("accept operation " + entry.m_ProxySocket.GetName(), LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
 						Accept(entry);
 						break;
 					case SelectionKey.OP_CONNECT:
-						System.out.println("Got connect op");
+						LogUtility.LogFile("connect operation " + entry.m_ProxySocket.GetName(), LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
 						Connect(entry);
 						break;
 					case SelectionKey.OP_READ:
-						//System.out.println("Got read op");
+						LogUtility.LogFile("read operation " + entry.m_ProxySocket.GetName(), LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
 						Read(entry);
 						break;
-					case SelectionKey.OP_WRITE:
-						//System.out.println("Got write op");
+					case SelectionKey.OP_WRITE: 
+						LogUtility.LogFile("write operation " + entry.m_ProxySocket.GetName(), LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
 						Write(entry);
 						break;
 					default:
@@ -259,6 +273,7 @@ class SocketThread extends Thread
 			ProxySocket proxySocket = null;
 			while(keyIterator.hasNext()) 
 			{
+				LogUtility.LogFile("next key ", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
 				SelectionKey key = keyIterator.next();
 				try
 				{

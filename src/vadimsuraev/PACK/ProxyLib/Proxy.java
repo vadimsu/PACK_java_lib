@@ -33,7 +33,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class Proxy implements SocketCallbacks, IOnGotResults
 {
-    public static LogUtility.LogLevels ModuleLogLevel = LogUtility.LogLevels.LEVEL_LOG_NONE;
+    public static LogUtility.LogLevels ModuleLogLevel = LogUtility.LogLevels.LEVEL_LOG_MEDIUM;
 
     protected LinkedList<byte []> m_clientTxQueue;
     protected LinkedList<byte []> m_destinationTxQueue;
@@ -541,7 +541,7 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
             }
             else
             {
-                m_clientTxQueue.addFirst(data);
+                m_clientTxQueue.addLast(data);
             }
             LeaveClientMsgTxQueue();
             m_SubmittedMsgsClient++;
@@ -602,6 +602,21 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
     public boolean ProcessDownStreamData(byte[] data,boolean isInvokedOnTransmit)
     {
         return false;/* message is not intercepted */
+    }
+    public byte []DebugGetClient2Transmit(ReferencedLong streamLength, ReferencedBoolean isMsg)
+    {
+    	byte []data = null;
+    	
+    	EnterClientMsgTxQueue();
+        if (!m_clientTxQueue.isEmpty())
+        {
+            data  = m_clientTxQueue.removeFirst();
+            isMsg.val = true;
+            m_IsMsgBeingTransmitted2Client = true;
+            streamLength.val = (long)data.length;
+        }
+        LeaveClientMsgTxQueue();
+        return data;
     }
     public byte []GetClient2Transmit(ReferencedLong streamLength, ReferencedBoolean isMsg)
     {

@@ -82,25 +82,68 @@ public class TxStateMachine extends FramingStateMachine
         try
         {
             LogUtility.LogFile(m_Id.toString() + " GetBytes (limited) Tx sm: state " + Integer.toString(m_State) + " byte counter " + Long.toString(m_ByteCounter), ModuleLogLevel);
-            //LogUtility.LogFile(Environment.StackTrace);
-            if (m_State == (byte)PackTxRxState_e.PACK_DUMMY_STATE.ordinal())
+            byte []buff = null;
+            switch (PackTxRxState_e.values()[m_State])
             {
-                m_State = (byte)PackTxRxState_e.PACK_HEADER_STATE.ordinal();
-                LogUtility.LogFile(m_Id.toString() + " Went header state", ModuleLogLevel);
+                case PACK_DUMMY_STATE:
+                    m_State = (byte)PackTxRxState_e.PACK_HEADER_STATE.ordinal();
+                    LogUtility.LogFile(m_Id.toString() + " Went header state", ModuleLogLevel);
+                    m_State = (byte)PackTxRxState_e.PACK_HEADER_STATE.ordinal();
+                case PACK_HEADER_STATE:
+                	if(limit >= ((m_Body.length - m_ByteCounter) + GetHeaderLength()))
+                	{
+                		LogUtility.LogFile(m_Id.toString() + " HEADER state: allocating " + Long.toString((m_Body.length - m_ByteCounter) + GetHeaderLength()), ModuleLogLevel);
+                		buff = new byte[(int) (m_Body.length - m_ByteCounter) + GetHeaderLength()];
+                	}
+                	else
+                	{
+                		LogUtility.LogFile(m_Id.toString() + " HEADER state: allocating " + Long.toString(limit), ModuleLogLevel);
+                		buff = new byte[limit];
+                	}
+                	ByteArrayUtils.CopyBytes(m_Header,0,buff,0,m_Header.length);
+                	if(limit > m_Body.length)
+                	{
+                		m_State = (byte)PackTxRxState_e.PACK_WHOLE_PACKET_STATE.ordinal();
+                	}
+                	else
+                	{
+                		m_State = (byte)PackTxRxState_e.PACK_BODY_STATE.ordinal();
+                	}
+                case PACK_BODY_STATE:
+                case PACK_WHOLE_PACKET_STATE:
+                    if (m_ByteCounter == m_Body.length)
+                    {
+                        return buff;
+                    }
+                    if(buff != null)
+                    {
+                    	if((limit - GetHeaderLength()) >= (m_Body.length - m_ByteCounter))
+                    	{
+                    		LogUtility.LogFile(m_Id.toString() + " BODY state1: copying " + Long.toString(m_Body.length - m_ByteCounter), ModuleLogLevel);
+                    		ByteArrayUtils.CopyBytes(m_Body,(int)m_ByteCounter,buff,m_Header.length,(int)(m_Body.length - m_ByteCounter));
+                    		//m_ByteCounter += (m_Body.length - m_ByteCounter);
+                    	}
+                    	else
+                    	{
+                    		LogUtility.LogFile(m_Id.toString() + " BODY state2: copying " + Long.toString(limit - GetHeaderLength()) + " offset " + Long.toString(m_ByteCounter), ModuleLogLevel);
+                    		ByteArrayUtils.CopyBytes(m_Body,(int)m_ByteCounter,buff,m_Header.length,(int)(limit - GetHeaderLength()));
+                    		//m_ByteCounter += (limit - GetHeaderLength());
+                    	}
+                    	return buff;
+                    }
+                    if(limit >= (m_Body.length - m_ByteCounter))
+                    {
+                    	LogUtility.LogFile(m_Id.toString() + " BODY state1: allocating " + Long.toString(m_Body.length - m_ByteCounter) + " offset " + Long.toString(m_ByteCounter), ModuleLogLevel);
+                    	buff = new byte[(int) (m_Body.length - m_ByteCounter)];
+                    }
+                    else
+                    {
+                    	LogUtility.LogFile(m_Id.toString() + " BODY state2: allocating " + Long.toString(limit) + " offset " + Long.toString(m_ByteCounter), ModuleLogLevel);
+                    	buff = new byte[limit];
+                    }
+                    ByteArrayUtils.CopyBytes(m_Body,(int)m_ByteCounter,buff,0,buff.length);
+                    return buff;
             }
-            if(m_State == (byte)PackTxRxState_e.PACK_HEADER_STATE.ordinal())
-            {
-                byte []buff = new byte[m_Header.length+m_Body.length];
-                ByteArrayUtils.CopyBytes(m_Header,buff,0);
-                ByteArrayUtils.CopyBytes(m_Body,buff,m_Header.length);
-                m_State = (byte)PackTxRxState_e.PACK_WHOLE_PACKET_STATE.ordinal();
-                return buff;
-            }
-            if (m_ByteCounter == m_Body.length)
-            {
-                return null;
-            }
-            return m_Body;
         }
         catch (Exception exc)
         {

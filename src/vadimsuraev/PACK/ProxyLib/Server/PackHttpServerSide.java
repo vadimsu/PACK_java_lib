@@ -22,13 +22,6 @@ public class PackHttpServerSide extends HttpServerSideProxy implements OnMsgRead
         }
         return super.GetSaved();
     }
-    void OnMsgRead4Tx(Object param, byte[] msg,boolean submit2Head)
-    {
-        LogUtility.LogFile("Entering OnMsgReady4Tx", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
-        ProprietarySegmentSubmitMsg4Tx(msg,submit2Head);
-        //ProprietarySegmentTransmit();
-        LogUtility.LogFile("Leaving OnMsgReady4Tx", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
-    }
     public void OnDownStreamTransmissionOpportunity()
     {
     }
