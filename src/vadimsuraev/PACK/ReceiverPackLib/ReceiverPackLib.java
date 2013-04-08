@@ -167,7 +167,7 @@ public class ReceiverPackLib extends Stream2Message
                 buffer[(int) buffer_idx++] = ChunkAndChainFileManager.GetChunkHint(chunkListAndChainId.chunks[(int) idx]);
                 buffer_idx +=
                 ByteArrayScalarTypeConversionLib.Long2ByteArray(buffer, buffer_idx, chunkListAndChainId.chunks[(int) idx]);
-                LogUtility.LogFile(m_Id.toString() + " chunk " + Long.toString(chunkListAndChainId.chunks[(int)idx]) + " len " + Integer.toString(PackChunking.chunkToLen(chunkListAndChainId.chunks[(int)idx])) + " is written to PRED", ModuleLogLevel);
+                //LogUtility.LogFile(m_Id.toString() + " chunk " + Long.toString(chunkListAndChainId.chunks[(int)idx]) + " len " + Integer.toString(PackChunking.chunkToLen(chunkListAndChainId.chunks[(int)idx])) + " is written to PRED", ModuleLogLevel);
             }
         }
     }

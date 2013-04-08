@@ -294,7 +294,8 @@ public class ProxySocket
     }
     public void Disconnect()
     {
-    	m_SocketThread.CancellAll(m_SocketChannel);
+    	m_SocketThread.SubmitAction(SocketThread.OP_DISCONNECT, m_SocketChannel, false, this);
+    	/*m_SocketThread.CancellAll(m_SocketChannel);
     	try {
 			((SocketChannel)m_SocketChannel).socket().shutdownInput();
 		} catch (IOException e) {
@@ -319,7 +320,7 @@ public class ProxySocket
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-    	m_SocketCallbacks.OnConnectionBroken(m_data);
+    	m_SocketCallbacks.OnConnectionBroken(m_data);*/
     }
     public boolean isConnected()
     {
@@ -357,6 +358,11 @@ public class ProxySocket
     	sa = new InetSocketAddress(((SocketChannel)m_SocketChannel).socket().getLocalAddress(),
     			((SocketChannel)m_SocketChannel).socket().getLocalPort());
     	return sa;
+    }
+    
+    public int GeRemotePort()
+    {
+    	return ((SocketChannel)m_SocketChannel).socket().getPort();
     }
     
     public String GetName()

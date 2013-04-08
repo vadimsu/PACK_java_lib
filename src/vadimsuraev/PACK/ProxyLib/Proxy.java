@@ -77,6 +77,7 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
     protected MyMemoryStream m_clientStream;
     protected MyMemoryStream m_destinationStream;
     protected IOnGotResults m_OnGotResults;
+    protected boolean m_dest_connection_is_broken;
     public static void InitGlobalObjects()
     {
         //PackClientSide.InitGlobalObjects();
@@ -119,6 +120,7 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         m_clientStream = new MyMemoryStream();
         m_destinationStream = new MyMemoryStream();
         m_OnGotResults = onGotResults;
+        m_dest_connection_is_broken = false;
         LogUtility.LogFile("Started at " + Long.toString((new Date().getTime())), LogUtility.LogLevels.LEVEL_LOG_HIGH);
     }
 
@@ -245,10 +247,26 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
     }
     protected boolean IsAlive()
     {
-        try
+        /*try
+        {
+            if ((!m_destinationSideSocket.isConnected())||(m_dest_connection_is_broken))
+            {
+                LogUtility.LogFile(m_Id.toString() +" Socket disconnected ", ModuleLogLevel);
+            }
+            return (m_destinationSideSocket.isConnected()&&(!m_dest_connection_is_broken));
+        }
+        catch (Exception exc)
+        {
+            return false;
+        }*/
+    	try
         {
             if (!m_destinationSideSocket.isConnected())
             {
+            	if ((ClientTxInProgress()) || (!IsClientTxQueueEmpty()))
+            	{
+            		return true;
+            	}
                 LogUtility.LogFile(m_Id.toString() +" Socket disconnected ", ModuleLogLevel);
             }
             return m_destinationSideSocket.isConnected();
@@ -260,7 +278,8 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
     }
     public boolean EnterProprietarySegmentTxCriticalArea(boolean wait)
     {
-        try
+    	return true;
+        /*try
         {
             boolean ret;
 
@@ -280,11 +299,12 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         {
             //LogUtility.LogUtility.LogFile(Convert.ToString(Id) + " EXCEPTION " + exc.Message + " " + exc.StackTrace, LogUtility.LogLevels.LEVEL_LOG_HIGH);
             return false;
-        }
+        }*/
     }
     public void LeaveProprietarySegmentTxCriticalArea()
     {
-        try
+    	return;
+        /*try
         {
             //ProprietarySegmentTxMutex.ReleaseMutex();
             m_ProprietarySegmentTxMutex.unlock();
@@ -292,11 +312,12 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         catch (Exception exc)
         {
             //LogUtility.LogUtility.LogFile(Convert.ToString(Id) + " EXCEPTION " + exc.Message + " " + exc.StackTrace, LogUtility.LogLevels.LEVEL_LOG_HIGH);
-        }
+        }*/
     }
     public boolean EnterNonProprietarySegmentTxCriticalArea(boolean wait)
     {
-        try
+    	return true;
+        /*try
         {
             boolean ret;
 
@@ -316,22 +337,24 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         {
             //LogUtility.LogUtility.LogFile(Convert.ToString(Id) + " EXCEPTION " + exc.Message + " " + exc.StackTrace, LogUtility.LogLevels.LEVEL_LOG_HIGH);
             return false;
-        }
+        }*/
     }
     public void LeaveNonProprietarySegmentTxCriticalArea()
     {
-        try
+    	return;
+        /*try
         {
             m_NonProprietarySegmentTxMutex.unlock();
         }
         catch (Exception exc)
         {
             //LogUtility.LogUtility.LogFile(Convert.ToString(Id) + " EXCEPTION " + exc.Message + " " + exc.StackTrace, LogUtility.LogLevels.LEVEL_LOG_HIGH);
-        }
+        }*/
     }
     public boolean EnterProprietarySegmentRxCriticalArea(boolean wait)
     {
-        try
+    	return true;
+        /*try
         {
             boolean ret;
 
@@ -351,11 +374,12 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         {
             //LogUtility.LogUtility.LogFile(Convert.ToString(Id) + " EXCEPTION " + exc.Message + " " + exc.StackTrace, LogUtility.LogLevels.LEVEL_LOG_HIGH);
             return false;
-        }
+        }*/
     }
     public void LeaveProprietarySegmentRxCriticalArea()
     {
-        try
+    	return;
+        /*try
         {
             //ProprietarySegmentRxMutex.ReleaseMutex();
             m_ProprietarySegmentRxMutex.unlock();
@@ -363,11 +387,12 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         catch (Exception exc)
         {
             //LogUtility.LogUtility.LogFile(Convert.ToString(Id) + " EXCEPTION " + exc.Message + " " + exc.StackTrace, LogUtility.LogLevels.LEVEL_LOG_HIGH);
-        }
+        }*/
     }
     public boolean EnterNonProprietarySegmentRxCriticalArea(boolean wait)
     {
-        try
+    	return true;
+        /*try
         {
             boolean ret;
 
@@ -387,11 +412,12 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         {
             //LogUtility.LogUtility.LogFile(Convert.ToString(Id) + " EXCEPTION " + exc.Message + " " + exc.StackTrace, LogUtility.LogLevels.LEVEL_LOG_HIGH);
             return false;
-        }
+        }*/
     }
     public void LeaveNonProprietarySegmentRxCriticalArea()
     {
-        try
+    	return;
+        /*try
         {
             //NonProprietarySegmentRxMutex.ReleaseMutex();
             m_NonProprietarySegmentRxMutex.unlock();
@@ -399,11 +425,12 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         catch (Exception exc)
         {
             //LogUtility.LogUtility.LogFile(Convert.ToString(Id) + " EXCEPTION " + exc.Message + " " + exc.StackTrace, LogUtility.LogLevels.LEVEL_LOG_HIGH);
-        }
+        }*/
     }
     public void EnterClientStreamCriticalArea()
     {
-        try
+    	return;
+        /*try
         {
             //ProprietarySegmentTxMutex.WaitOne();
             m_clientStreamMutex.lock();
@@ -411,11 +438,12 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         catch (Exception exc)
         {
             //LogUtility.LogUtility.LogFile(Convert.ToString(Id) + " EXCEPTION " + exc.Message + " " + exc.StackTrace, LogUtility.LogLevels.LEVEL_LOG_HIGH);
-        }
+        }*/
     }
     public void LeaveClientStreamCriticalArea()
     {
-        try
+    	return;
+        /*try
         {
             //ProprietarySegmentTxMutex.ReleaseMutex();
             m_clientStreamMutex.unlock();
@@ -423,44 +451,48 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         catch (Exception exc)
         {
             //LogUtility.LogUtility.LogFile(Convert.ToString(Id) + " EXCEPTION " + exc.Message + " " + exc.StackTrace, LogUtility.LogLevels.LEVEL_LOG_HIGH);
-        }
+        }*/
     }
     public void EnterDestinationStreamCriticalArea()
     {
-        try
+    	return;
+        /*try
         {
             m_destinationStreamMutex.lock();
         }
         catch (Exception exc)
         {
             //LogUtility.LogUtility.LogFile(Convert.ToString(Id) + " EXCEPTION " + exc.Message + " " + exc.StackTrace, LogUtility.LogLevels.LEVEL_LOG_HIGH);
-        }
+        }*/
     }
     public void LeaveDestinationStreamCriticalArea()
     {
-        try
+    	return;
+        /*try
         {
             m_destinationStreamMutex.unlock();
         }
         catch (Exception exc)
         {
             //LogUtility.LogUtility.LogFile(Convert.ToString(Id) + " EXCEPTION " + exc.Message + " " + exc.StackTrace, LogUtility.LogLevels.LEVEL_LOG_HIGH);
-        }
+        }*/
     }
     public void EnterProprietaryLibCriticalArea()
     {
-        try
+    	return;
+        /*try
         {
             m_proprietaryLibMutex.lock();
         }
         catch (Exception exc)
         {
             //LogUtility.LogUtility.LogFile(Convert.ToString(Id) + " EXCEPTION " + exc.Message + " " + exc.StackTrace, LogUtility.LogLevels.LEVEL_LOG_HIGH);
-        }
+        }*/
     }
     public void LeaveProprietaryLibCriticalArea()
     {
-        try
+    	return;
+        /*try
         {
             //ProprietarySegmentTxMutex.ReleaseMutex();
             m_proprietaryLibMutex.unlock();
@@ -468,51 +500,55 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         catch (Exception exc)
         {
             //LogUtility.LogUtility.LogFile(Convert.ToString(Id) + " EXCEPTION " + exc.Message + " " + exc.StackTrace, LogUtility.LogLevels.LEVEL_LOG_HIGH);
-        }
+        }*/
     }
 
     void EnterClientMsgTxQueue()
     {
-        try
+    	return;
+        /*try
         {
             m_clientTxQueueMutex.lock();
         }
         catch (Exception exc)
         {
-        }
+        }*/
     }
 
     void LeaveClientMsgTxQueue()
     {
-        try
+    	return;
+        /*try
         {
             m_clientTxQueueMutex.unlock();
         }
         catch (Exception exc)
         {
-        }
+        }*/
     }
 
     void EnterDestinationMsgTxQueue()
     {
-        try
+    	return;
+        /*try
         {
             m_destinationTxQueueMutex.lock();
         }
         catch (Exception exc)
         {
-        }
+        }*/
     }
 
     void LeaveDestinationMsgTxQueue()
     {
-        try
+    	return;
+        /*try
         {
             m_destinationTxQueueMutex.unlock();
         }
         catch (Exception exc)
         {
-        }
+        }*/
     }
     
     public void SubmitStream4ClientTx(byte []data)
@@ -589,7 +625,7 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         try
         {
             EnterDestinationMsgTxQueue();
-            m_destinationTxQueue.addFirst(data);
+            m_destinationTxQueue.addLast(data);
             LeaveDestinationMsgTxQueue();
             m_SubmittedMsgsServer++;
             m_SubmittedServer += (long)data.length;
@@ -667,8 +703,12 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
 	                LogUtility.LogFile("Leaving GetClient2Transmit", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
 	                return data;
 	            }
+	            else
+	            {
+	            	isSecondPass = false;
+	            }
 	            LeaveClientMsgTxQueue();
-	        }while(false);
+	        }while(isSecondPass);
             
             
             LogUtility.LogFile("Queue is empty", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
@@ -834,7 +874,7 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         {
             LogUtility.LogException(idStr,exc , LogUtility.LogLevels.LEVEL_LOG_HIGH);
         }
-        try
+        /*try
         {
 //            clientSideSocket.BeginDisconnect(false, new AsyncCallback(OnClientDisconnected), null);
             m_clientSideSocket.Disconnect();
@@ -842,7 +882,8 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         catch (Exception exc)
         {
         	LogUtility.LogException(idStr,exc, LogUtility.LogLevels.LEVEL_LOG_HIGH);
-        }
+        }*/
+       // m_dest_connection_is_broken = true;
     }
 
     protected void OnClientDisconnected()

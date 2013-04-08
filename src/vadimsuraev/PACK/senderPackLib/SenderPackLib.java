@@ -274,12 +274,13 @@ class MatchStateMachine
             sha1 = PackChunking.chunkToSha1(sndChunk);
             if (sha1 != PackChunking.chunkToSha1(rcvChunk.chunk.val))
             {
-                LogUtility.LogFile(m_Id.toString() + " sha mismatch " + Long.toString(idx) + " " + Long.toString(senderFirstIdx), ModuleLogLevel);
+                LogUtility.LogFile(m_Id.toString() + " sha mismatch " + Long.toString(idx) + " " + Long.toString(senderFirstIdx) + " sha1 " + Long.toHexString(sha1) + " Sha1 " + Long.toHexString(PackChunking.chunkToSha1(rcvChunk.chunk.val)), ModuleLogLevel);
                 return idx;
             }
-            //LogUtility.LogFile(m_Id.toString() + " sha match " + Long.toString(idx) + " " + Long.toString(senderFirstIdx), ModuleLogLevel);
+            LogUtility.LogFile(m_Id.toString() + " sha match " + Long.toString(idx) + " " + Long.toString(senderFirstIdx), ModuleLogLevel);
             senderFirstIdx++;
             receiverFirstIdx++;
+            idx++;
         }
         return idx;
     }
@@ -526,8 +527,13 @@ public class SenderPackLib extends Stream2Message
                 m_DataMsgSent++;
             }
         }
-        List<ChunkMetaData> listChunkMeta = longestMatch.GetPredMsg().subList((int)longestMatch.GetFirstReceiverChunkIdx(), (int)longestMatch.GetLongestChunkCount());
-        longestMatch.GetPredMsg().removeAll(listChunkMeta);
+        int fromIdx = (int)longestMatch.GetFirstReceiverChunkIdx();
+    	int toIdx = (int)longestMatch.GetLongestChunkCount();
+        int remIdx;
+        for(remIdx = 0;remIdx < toIdx;remIdx++)
+        {
+        	longestMatch.GetPredMsg().remove(fromIdx);
+        }
         m_libMutex.unlock();
         LogUtility.LogFile(m_Id.toString() /*+ " PreSaved " + Long.toString(m_TotalPreSaved)*/ + " Saved " + Long.toString(m_TotalSavedData) /*+ " PostSaved " + Long.toString(m_TotalPostSaved)*/ + " Received from server " + Long.toString(m_TotalDataReceived) + " Total sent to client " + Long.toString(m_TotalDataSent) /*+ " Sent raw " + Long.toString(m_TotalRawSent)*/, ModuleLogLevel);
         return ret;
@@ -552,26 +558,30 @@ public class SenderPackLib extends Stream2Message
         LinkedList<LinkedList<ChunkMetaData>> chainsList;
 
         buffer_idx +=
-                ByteArrayScalarTypeConversionLib.ByteArray2Long(buffer, buffer_idx, decodedOffsetInStream);
+                ByteArrayScalarTypeConversionLib.ByteArray2Uint(buffer, buffer_idx, decodedOffsetInStream);
 
         buffer_idx +=
-                ByteArrayScalarTypeConversionLib.ByteArray2Long(buffer, buffer_idx, chainsListSize);
+                ByteArrayScalarTypeConversionLib.ByteArray2Uint(buffer, buffer_idx, chainsListSize);
 
         chainsList = new  LinkedList<LinkedList<ChunkMetaData>>();
+        
+        LogUtility.LogFile("chain list size " + Long.toString(chainsListSize.val), LogUtility.LogLevels.LEVEL_LOG_HIGH);
 
         for (int chain_idx = 0; chain_idx < chainsListSize.val;chain_idx++ )
         {
         	ReferencedLong chunkListSize = new ReferencedLong();
             
             buffer_idx +=
-                ByteArrayScalarTypeConversionLib.ByteArray2Long(buffer, buffer_idx, chunkListSize);
+                ByteArrayScalarTypeConversionLib.ByteArray2Uint(buffer, buffer_idx, chunkListSize);
             LinkedList<ChunkMetaData> chunkMetaDataList = new LinkedList<ChunkMetaData>();
+            LogUtility.LogFile("chunkListSize " + Long.toString(chunkListSize.val), LogUtility.LogLevels.LEVEL_LOG_HIGH);
             for (long idx = 0; idx < chunkListSize.val; idx++)
             {
                 ChunkMetaData chunkMetaData = new ChunkMetaData();
                 chunkMetaData.hint = buffer[(int) buffer_idx++];
                 buffer_idx +=
                 ByteArrayScalarTypeConversionLib.ByteArray2Long(buffer, buffer_idx, chunkMetaData.chunk);
+                //LogUtility.LogFile("decoded chunk " + Long.toString(chunkMetaData.chunk.val), LogUtility.LogLevels.LEVEL_LOG_HIGH);
                 chunkMetaDataList.add(chunkMetaData);
             }
             chainsList.add(chunkMetaDataList);
@@ -589,7 +599,7 @@ public class SenderPackLib extends Stream2Message
         long thisTimeSaved = 0;
 
         buffer_idx +=
-                ByteArrayScalarTypeConversionLib.Long2ByteArray(buffer, buffer_idx, chunksCount);
+                ByteArrayScalarTypeConversionLib.Uint2ByteArray(buffer, buffer_idx, chunksCount);
 
         Iterator<ChunkMetaData> itr = chunkMetaDataList.iterator();
         while(itr.hasNext())

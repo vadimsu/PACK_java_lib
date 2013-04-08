@@ -359,7 +359,7 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
     			m_txStateMachine.SetMsgBody(data);
     		}
 
-    		byte[] buff2transmit = m_txStateMachine.GetBytes(8192);
+    		byte[] buff2transmit = m_txStateMachine.GetBytes(/*8192*/);
     		if (buff2transmit != null)
     		{
     			IsRestartRequired = _ProprietarySegmentTransmit(buff2transmit);

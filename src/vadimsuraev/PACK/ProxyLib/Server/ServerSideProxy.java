@@ -1,22 +1,12 @@
 ﻿package vadimsuraev.PACK.ProxyLib.Server;
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 import vadimsuraev.LogUtility.*;
-import vadimsuraev.PACK.PackMsg.PackMsg;
 import vadimsuraev.PACK.ProxyLib.Proxy;
 import vadimsuraev.PACK.ProxyLib.ProxySocket;
 import vadimsuraev.PACK.ProxyLib.ProxyLibTypes.*;
 import vadimsuraev.ReferencedTypes.ReferencedBoolean;
-import vadimsuraev.ReferencedTypes.ReferencedInteger;
 import vadimsuraev.ReferencedTypes.ReferencedLong;
 import vadimsuraev.PACK.ProxyLib.RxTxStateMachine.*;
 
@@ -24,34 +14,18 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
 {
     protected boolean m_ErrorSent;
     protected boolean m_OnceConnected;
-    FileOutputStream m_Fs_in;
-    FileOutputStream m_Fs_out;
 
     public ServerSideProxy(SocketChannel sock)
     {
     	super(null);
-        m_clientSideSocket = new ProxySocket("ClientProp",sock,true,this);
+    	String temp = Integer.toString(sock.socket().getPort());
+        m_clientSideSocket = new ProxySocket("ClientProp" + temp,sock,true,this);
         m_Id = m_clientSideSocket.GetlocalEndPoint();
         m_rxStateMachine.SetEndPoint(m_Id);
         m_txStateMachine.SetEndPoint(m_Id);
         m_destinationSideSocket = null;
         m_ErrorSent = false;
         m_OnceConnected = false;
-        String temp = Integer.toString(sock.socket().getPort());
-        System.out.println("in\\" + temp);
-        System.out.println("out\\" + temp);
-        try {
-			m_Fs_in = new FileOutputStream("in\\" + temp);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-        try {
-			m_Fs_out = new FileOutputStream("out\\" + temp);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
     }
     
     protected void _OnProprietarySegmentTransmitted(int transmitted)
@@ -355,8 +329,8 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
     		{
     			ReferencedLong length = new ReferencedLong();
     			ReferencedBoolean isMsg = new ReferencedBoolean();
-    			//byte []data = GetClient2Transmit(length,isMsg);
-    			byte []data = DebugGetClient2Transmit(length,isMsg);
+    			byte []data = GetClient2Transmit(length,isMsg);
+    			//byte []data = DebugGetClient2Transmit(length,isMsg);
     			if (data == null)
     			{
     				LogUtility.LogFile(m_Id.toString() + " queue is empty", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
@@ -366,9 +340,9 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
     			LogUtility.LogFile(m_Id.toString() + " initiating new msg len " + Integer.toString(data.length) + " " + Boolean.toString(isMsg.val), ModuleLogLevel);
     			if (isMsg.val)
     			{
-    				{
+    				/*{
     					DebugWriteStream2File(false,data,10,data.length-10);
-    				}
+    				}*/
     				m_txStateMachine.SetKind((byte)PackEnvelopeKinds.PACK_ENVELOPE_DOWNSTREAM_MSG_KIND.ordinal());
     			}
     			else
@@ -401,27 +375,6 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
     {
         return ((!m_txStateMachine.IsBusy()) && super.IsClientTxQueueEmpty());
     }
-    void DebugWriteStream2File(boolean in,byte []buff,int offset,int length)
-    {
-    	FileOutputStream fs;
-    	if(in)
-    	{
-    		fs = m_Fs_in;
-    	}
-    	else
-    	{
-    		fs = m_Fs_out;
-    	}
-    	try {
-    		System.out.println("offset " + Integer.toString(offset) + " len " + Integer.toString(length) + " total length " + Integer.toString(buff.length));
-			fs.write(buff, offset, length);
-			fs.flush();
-            //fs.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-    }
     void DebugCopyBytesFromOffset(byte[] src,byte[] dst,  int dst_offset,int Count)
     {
         for (int i = 0; i < Count; i++)
@@ -446,7 +399,7 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
             {
                 LogUtility.LogFile(m_Id.toString() + " Rx ERROR ", ModuleLogLevel);
                 CheckConnectionAndShutDownIfGone();
-               // Dispose();
+                Dispose();
                 LeaveNonProprietarySegmentRxCriticalArea();
                 ReStartAllOperations(!m_OnceConnected);
                 return;
@@ -457,16 +410,16 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
 
             byte[] buff = new byte[Received];
             CopyBytes(m_NonProprietarySegmentRxBuf, buff, Received);
-            {
+            /*{
             	DebugWriteStream2File(true,buff,0,buff.length);
-            }
-            //ProcessDownStreamData(buff,false);
-            {
+            }*/
+            ProcessDownStreamData(buff,false);
+            /*{
             	ReferencedInteger offset = new ReferencedInteger();
                 byte []msg = PackMsg.AllocateMsgAndBuildHeader((long)buff.length, (byte)0, (byte)PackMsg.MsgKind_e.PACK_DATA_MSG_KIND.ordinal(), offset);
                 DebugCopyBytesFromOffset(buff,msg,offset.val,(int)buff.length);
                 ProprietarySegmentSubmitMsg4Tx(msg,false);
-            }
+            }*/
             m_NonProprietarySegmentRxInProgress = false;
         }
         catch (Exception exc)

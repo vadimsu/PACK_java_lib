@@ -26,6 +26,7 @@ class SocketThread extends Thread
 	Selector m_selector = null;
 	ReentrantLock m_ActionQueueMutex;
 	LinkedList<ActionRequestQueueEntry> m_ActionQueue;
+	public static final int OP_DISCONNECT = 0x20;
 	
 	public SocketThread()
 	{
@@ -184,7 +185,37 @@ class SocketThread extends Thread
 		}
 //		System.out.println("Registered for write ");
 	}
-	
+	void Disconnect(ActionRequestQueueEntry entry)
+	{
+		SocketChannel sc;
+		sc = (SocketChannel) entry.GetChannel();
+		CancellAll(sc);
+    	try {
+			((SocketChannel)sc).socket().shutdownInput();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	try {
+			((SocketChannel)sc).socket().shutdownOutput();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	try {
+			((SocketChannel)sc).socket().close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	try {
+			((SocketChannel)sc).close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	entry.GetProxySocketInstance().OnClosed();
+	}
 	void Accept(ActionRequestQueueEntry entry)
 	{
 		ServerSocketChannel sc;
@@ -252,6 +283,9 @@ class SocketThread extends Thread
 					case SelectionKey.OP_WRITE: 
 						LogUtility.LogFile("write operation " + entry.m_ProxySocket.GetName(), LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
 						Write(entry);
+						break;
+					case OP_DISCONNECT:
+						Disconnect(entry);
 						break;
 					default:
 						;

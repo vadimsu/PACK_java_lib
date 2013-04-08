@@ -1,5 +1,8 @@
 ﻿package vadimsuraev.PACK.ProxyLib.Server;
 
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.channels.SocketChannel;
 
 import vadimsuraev.LogUtility.LogUtility;
@@ -39,7 +42,10 @@ public class PackHttpServerSide extends HttpServerSideProxy implements OnMsgRead
             }
             catch (Exception exc)
             {
-                LogUtility.LogFile(m_Id.toString() + " EXCEPTION " + exc.getMessage(), LogUtility.LogLevels.LEVEL_LOG_HIGH);
+            	ByteArrayOutputStream os = new ByteArrayOutputStream();
+                PrintStream ps = new PrintStream(os);
+                exc.printStackTrace(ps);
+                LogUtility.LogFile(m_Id.toString() + " EXCEPTION " + os.toString(), LogUtility.LogLevels.LEVEL_LOG_HIGH);
                 LeaveProprietaryLibCriticalArea();
             }
             //ProprietarySegmentSubmitStream4Tx(data);
@@ -68,7 +74,10 @@ public class PackHttpServerSide extends HttpServerSideProxy implements OnMsgRead
         }
         catch (Exception exc)
         {
-            LogUtility.LogFile("EXCEPTION: " + exc.getMessage(), LogUtility.LogLevels.LEVEL_LOG_HIGH);
+        	ByteArrayOutputStream os = new ByteArrayOutputStream();
+            PrintStream ps = new PrintStream(os);
+            exc.printStackTrace(ps);
+            LogUtility.LogFile("EXCEPTION: " + os.toString(), LogUtility.LogLevels.LEVEL_LOG_HIGH);
         }
         LogUtility.LogFile("Leaving ProcessDownStreamData", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
         LeaveProprietaryLibCriticalArea();

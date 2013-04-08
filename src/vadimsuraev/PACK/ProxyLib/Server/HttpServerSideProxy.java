@@ -242,7 +242,8 @@ public class HttpServerSideProxy extends ServerSideProxy
 			}
 			LogUtility.LogFile(m_Id.toString() + " host name is the IP address " + destIp.toString(), ModuleLogLevel);
 			DestinationEndPoint = new InetSocketAddress(destIp, Port);
-			m_destinationSideSocket = new ProxySocket("Server",false,this);
+			String temp = Integer.toString(m_clientSideSocket.GeRemotePort());
+			m_destinationSideSocket = new ProxySocket("Server_" + temp,false,this);
 			//destinationSideSocket.LingerState.Enabled = true;
 			//destinationSideSocket.LingerState.LingerTime = 5000;
 			if (m_HeaderFields.containsKey("Proxy-Connection") && m_HeaderFields.get("Proxy-Connection").toLowerCase().equals("keep-alive"))
@@ -348,11 +349,11 @@ public class HttpServerSideProxy extends ServerSideProxy
 		Boolean isProp = (Boolean)data;
 		if(isProp)
 		{
-			OnDestinationDisconnected();
+			OnClientDisconnected();
 		}
 		else
 		{
-			OnClientDisconnected();
+			OnDestinationDisconnected();
 		}
 	}
 	@Override
