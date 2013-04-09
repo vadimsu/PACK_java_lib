@@ -7,10 +7,12 @@ using System.Collections;
 using System.Threading;*/
 package vadimsuraev.LogUtility;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Dictionary;
@@ -124,6 +126,10 @@ public class LogUtility extends Thread
     	}
     	str += separator;
     	LogFile(str,level);
+    	ByteArrayOutputStream os = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(os);
+        exc.printStackTrace(ps);
+        LogFile(os.toString(),level);
     }
     static boolean RetrieveEntryAndWrite(LinkedList<String> entriesList,String filename)
     {

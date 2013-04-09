@@ -1,6 +1,8 @@
 package vadimsuraev.PACK.ProxyLib;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.SocketAddress;
@@ -224,7 +226,10 @@ public class ProxySocket
     		catch (IOException e) 
     		{
     			m_WriteMutex.unlock();
-    			e.printStackTrace();
+    			ByteArrayOutputStream os = new ByteArrayOutputStream();
+                PrintStream ps = new PrintStream(os);
+                e.printStackTrace(ps);
+                LogUtility.LogFile("EXEPTION: " + os.toString(), LogUtility.LogLevels.LEVEL_LOG_HIGH);
     			m_SocketCallbacks.OnConnectionBroken(m_data);
     			return;
 			}

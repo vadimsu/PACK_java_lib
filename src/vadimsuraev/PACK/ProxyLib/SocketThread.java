@@ -256,7 +256,9 @@ class SocketThread extends Thread
 		{
 			try 
 			{
+				LogUtility.LogFile("before select ", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
 				readyChannels = m_selector.select(500);
+				LogUtility.LogFile("after select ", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
 				//System.out.println(" Proxy socket, got " + readyChannels + " channels");
 				m_ActionQueueMutex.lock();
 				if(m_ActionQueue.size() > 0)

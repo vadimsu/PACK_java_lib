@@ -147,15 +147,20 @@ public class PackClientSide extends ClientSideProxy implements ClientSideCallbac
     }
     protected void Disposing()
     {
-    	Object[] res = new Object[3];
-        res[0] = m_receiverPackLib.GetTotalData();
-        res[1] = m_receiverPackLib.GetTotalDataSaved();
-        res[2] = GenerateDebugInfo();
-        super.OnGotResults(res);
-        //LogUtility.LogUtility.LogFile(receiverPackLib.GetDebugInfo(), LogUtility.LogLevels.LEVEL_LOG_HIGH2);
-        //LogUtility.LogUtility.LogFile("TotalData " + Integer.toString(receiverPackLib.GetTotalData()) + " TotalDataSaved " + Integer.toString(receiverPackLib.GetTotalDataSaved()), LogUtility.LogLevels.LEVEL_LOG_HIGH3);
-        m_receiverPackLib.OnDispose();
-        super.Disposing();
+    	try
+    	{
+    	    Object[] res = new Object[3];
+            res[0] = m_receiverPackLib.GetTotalData();
+            res[1] = m_receiverPackLib.GetTotalDataSaved();
+            res[2] = GenerateDebugInfo();
+            super.OnGotResults(res);
+            m_receiverPackLib.OnDispose();
+            super.Disposing();
+    	}
+    	catch(Exception e)
+    	{
+    		;
+    	}
     }
     public static void Flush()
     {

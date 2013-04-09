@@ -1,5 +1,7 @@
 ﻿package vadimsuraev.PACK.ProxyLib.Client;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 
@@ -39,18 +41,18 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
         
     protected void NonProprietarySegmentSubmitStream4Tx(byte []data)
     {
-    	LogUtility.LogFile(m_Id.toString() + " Entering NonProprietarySegmentSubmitStream4Tx", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    	LogUtility.LogFile(m_Id.toString() + " Entering NonProprietarySegmentSubmitStream4Tx", ModuleLogLevel);
 
         if (data != null)
         {
             LogUtility.LogFile("Submit stream to client queue " + Integer.toString(data.length), ModuleLogLevel);
             SubmitStream4ClientTx(data);
         }
-        LogUtility.LogFile(m_Id.toString() + " Leaving NonProprietarySegmentSubmitStream4Tx", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+        LogUtility.LogFile(m_Id.toString() + " Leaving NonProprietarySegmentSubmitStream4Tx", ModuleLogLevel);
     }
     protected void NonProprietarySegmentTransmit()
     {
-        LogUtility.LogFile(m_Id.toString() + " Entering NonProprietarySegmentTransmit tx client " + Long.toString(m_TransmittedClient) + " rx server " + Long.toString(m_ReceivedServer), LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+        LogUtility.LogFile(m_Id.toString() + " Entering NonProprietarySegmentTransmit tx client " + Long.toString(m_TransmittedClient) + " rx server " + Long.toString(m_ReceivedServer), ModuleLogLevel);
         if (!EnterNonProprietarySegmentTxCriticalArea(false))
         {
             return;
@@ -58,17 +60,17 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
 
         try
         {
-            LogUtility.LogFile("entered", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+            LogUtility.LogFile("entered", ModuleLogLevel);
             if (m_NonProprietarySegmentTxInProgress)
             {
-                LogUtility.LogFile("NonProprietarySegmentTransmit: tx is in progress,return", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+                LogUtility.LogFile("NonProprietarySegmentTransmit: tx is in progress,return", ModuleLogLevel);
                 LeaveNonProprietarySegmentTxCriticalArea();
                 return;
             }
 
             if (IsClientTxQueueEmpty())
             {
-                LogUtility.LogFile(m_Id.toString() + " cannot get from the queue", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+                LogUtility.LogFile(m_Id.toString() + " cannot get from the queue", ModuleLogLevel);
                 LeaveNonProprietarySegmentTxCriticalArea();
                 return;
             }
@@ -88,7 +90,7 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
              LogUtility.LogException(m_Id.toString(),exc, LogUtility.LogLevels.LEVEL_LOG_HIGH);
              m_NonProprietarySegmentTxInProgress = false;
         }
-        LogUtility.LogFile(m_Id.toString() + " Leaving NonProprietarySegmentTransmit", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+        LogUtility.LogFile(m_Id.toString() + " Leaving NonProprietarySegmentTransmit", ModuleLogLevel);
         LeaveNonProprietarySegmentTxCriticalArea();
     }
     public void OnMsgReceived()
@@ -97,7 +99,7 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
     }
     protected void OnProprietarySegmentMsgReceived()
     {
-         LogUtility.LogFile(m_Id.toString() + " Entering OnProprietarySegmentMsgReceived", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+         LogUtility.LogFile(m_Id.toString() + " Entering OnProprietarySegmentMsgReceived", ModuleLogLevel);
          try
          {
              LogUtility.LogFile(m_Id.toString() + " Received message type " + Integer.toString(m_rxStateMachine.GetKind()), ModuleLogLevel);
@@ -120,18 +122,18 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
         {
              LogUtility.LogException(m_Id.toString(),exc, LogUtility.LogLevels.LEVEL_LOG_HIGH);
         }
-        LogUtility.LogFile(m_Id.toString() + " Leaving OnProprietarySegmentMsgReceived", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+        LogUtility.LogFile(m_Id.toString() + " Leaving OnProprietarySegmentMsgReceived", ModuleLogLevel);
     }
     protected  void OnProprietarySegmentReceived(int Received)
     {
-        LogUtility.LogFile(m_Id.toString() + " Entering OnProprietarySegmentReceived", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+        LogUtility.LogFile(m_Id.toString() + " Entering OnProprietarySegmentReceived", ModuleLogLevel);
         EnterProprietarySegmentRxCriticalArea(true);
         try
         {
-            LogUtility.LogFile("entered", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+            LogUtility.LogFile("entered", ModuleLogLevel);
             if (!m_ProprietarySegmentRxInProgress)
             {
-                LogUtility.LogFile("OnProprietarySegmentReceived: rx is not in progress", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+                LogUtility.LogFile("OnProprietarySegmentReceived: rx is not in progress", ModuleLogLevel);
                 LeaveProprietarySegmentRxCriticalArea();
                 return;
             }
@@ -154,7 +156,7 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
             LogUtility.LogException(m_Id.toString(),exc, LogUtility.LogLevels.LEVEL_LOG_HIGH);
             return;
         }
-        LogUtility.LogFile(m_Id.toString() + " Leaving OnProprietarySegmentReceived", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+        LogUtility.LogFile(m_Id.toString() + " Leaving OnProprietarySegmentReceived", ModuleLogLevel);
         LeaveProprietarySegmentRxCriticalArea();
         ReStartAllOperations(false);
     }
@@ -162,17 +164,17 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
     protected  void ProprietarySegmentReceive()
     {
         boolean IsRestartRequired = false;
-        LogUtility.LogFile(m_Id.toString() + " Entering ProprietarySegmentReceive", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+        LogUtility.LogFile(m_Id.toString() + " Entering ProprietarySegmentReceive", ModuleLogLevel);
         if (!EnterProprietarySegmentRxCriticalArea(false))
         {
             return;
         }
         try
         {
-            LogUtility.LogFile("entered", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+            LogUtility.LogFile("entered", ModuleLogLevel);
             if (m_ProprietarySegmentRxInProgress)
             {
-                LogUtility.LogFile("ProprietarySegmentReceive: rx is in progress,return", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+                LogUtility.LogFile("ProprietarySegmentReceive: rx is in progress,return", ModuleLogLevel);
                 LeaveProprietarySegmentRxCriticalArea();
                 return;
             }
@@ -184,7 +186,7 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
         {
         	LogUtility.LogException(m_Id.toString(),exc, LogUtility.LogLevels.LEVEL_LOG_HIGH);
         }
-        LogUtility.LogFile(m_Id.toString() + " Leaving ProprietarySegmentReceive", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+        LogUtility.LogFile(m_Id.toString() + " Leaving ProprietarySegmentReceive", ModuleLogLevel);
         LeaveProprietarySegmentRxCriticalArea();
         CheckConnectionAndShutDownIfGone();
         if (IsRestartRequired)
@@ -215,14 +217,14 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
     }
     protected  void OnProprietarySegmentTransmitted(int Ret)
     {
-    	LogUtility.LogFile(m_Id.toString() + " Entering OnProprietarySegmentTransmitted", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    	LogUtility.LogFile(m_Id.toString() + " Entering OnProprietarySegmentTransmitted", ModuleLogLevel);
     	EnterProprietarySegmentTxCriticalArea(true);
     	try
     	{
-    		LogUtility.LogFile("entered", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    		LogUtility.LogFile("entered", ModuleLogLevel);
     		if (!m_ProprietarySegmentTxInProgress)
     		{
-    			LogUtility.LogFile("OnProprietarySegmentTransmitted: tx is not in progress, return", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    			LogUtility.LogFile("OnProprietarySegmentTransmitted: tx is not in progress, return", ModuleLogLevel);
     			LeaveProprietarySegmentTxCriticalArea();
     			return;
     		}
@@ -265,14 +267,14 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
 
     protected  void OnNonProprietarySegmentTransmitted(int sent)
     {
-    	LogUtility.LogFile(m_Id.toString() + " Entering OnNonProprietarySegmentTransmitted", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    	LogUtility.LogFile(m_Id.toString() + " Entering OnNonProprietarySegmentTransmitted", ModuleLogLevel);
     	EnterNonProprietarySegmentTxCriticalArea(true);
     	try
     	{
-    		LogUtility.LogFile("entered", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    		LogUtility.LogFile("entered", ModuleLogLevel);
     		if (!m_NonProprietarySegmentTxInProgress)
     		{
-    			LogUtility.LogFile("OnNonProprietarySegmentTransmitted: tx is not in progress, return", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    			LogUtility.LogFile("OnNonProprietarySegmentTransmitted: tx is not in progress, return", ModuleLogLevel);
     			LeaveNonProprietarySegmentTxCriticalArea();
     			return;
     		}
@@ -293,45 +295,45 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
     		LeaveNonProprietarySegmentTxCriticalArea();
     		return;
     	}
-    	LogUtility.LogFile(m_Id.toString() + " Leaving OnNonProprietarySegmentTransmitted", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    	LogUtility.LogFile(m_Id.toString() + " Leaving OnNonProprietarySegmentTransmitted", ModuleLogLevel);
     	LeaveNonProprietarySegmentTxCriticalArea();
     	ReStartAllOperations(false);
     }
     protected void ProprietarySegmentSubmitMsg4Tx(byte[] data)
     {
-    	LogUtility.LogFile(m_Id.toString() + " Entering ProprietarySegmentSubmitMsg4Tx", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    	LogUtility.LogFile(m_Id.toString() + " Entering ProprietarySegmentSubmitMsg4Tx", ModuleLogLevel);
 
     	if (data != null)
     	{
     		LogUtility.LogFile("submit msg to dest " + Integer.toString(data.length), ModuleLogLevel);
     		SubmitMsg4DestinationTx(data);
     	}
-    	LogUtility.LogFile(m_Id.toString() + " Leaving ProprietarySegmentSubmitMsg4Tx", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    	LogUtility.LogFile(m_Id.toString() + " Leaving ProprietarySegmentSubmitMsg4Tx", ModuleLogLevel);
     }
     protected void ProprietarySegmentSubmitStream4Tx(byte[] data)
     {
-    	LogUtility.LogFile(m_Id.toString() + " Entering ProprietarySegmentSubmitStream4Tx", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    	LogUtility.LogFile(m_Id.toString() + " Entering ProprietarySegmentSubmitStream4Tx", ModuleLogLevel);
     	if (data != null)
     	{
     		LogUtility.LogFile("submit stream for tx to dest " + Integer.toString(data.length), ModuleLogLevel);
     		SubmitStream4DestinationTx(data);
     	}
-    	LogUtility.LogFile(m_Id.toString() + " Leaving ProprietarySegmentSubmitStream4Tx", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    	LogUtility.LogFile(m_Id.toString() + " Leaving ProprietarySegmentSubmitStream4Tx", ModuleLogLevel);
     }
     protected  void ProprietarySegmentTransmit()
     {
     	boolean IsRestartRequired = false;
-    	LogUtility.LogFile(m_Id.toString() + " Entering ProprietarySegmentTransmit", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    	LogUtility.LogFile(m_Id.toString() + " Entering ProprietarySegmentTransmit", ModuleLogLevel);
     	if (!EnterProprietarySegmentTxCriticalArea(false))
     	{
     		return;
     	}
     	try
     	{
-    		LogUtility.LogFile("entered", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    		LogUtility.LogFile("entered", ModuleLogLevel);
     		if (m_ProprietarySegmentTxInProgress)
     		{
-    			LogUtility.LogFile(m_Id.toString() + " tx is in progress, return", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    			LogUtility.LogFile(m_Id.toString() + " tx is in progress, return", ModuleLogLevel);
     			LeaveProprietarySegmentTxCriticalArea();
     			return;
     		}
@@ -342,7 +344,7 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
     			byte []data = GetDestination2Transmit(length,isMsg);
     			if (data == null)
     			{
-    				LogUtility.LogFile(m_Id.toString() + " queue is empty", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    				LogUtility.LogFile(m_Id.toString() + " queue is empty", ModuleLogLevel);
     				LeaveProprietarySegmentTxCriticalArea();
     				return;
     			}
@@ -369,7 +371,7 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
     	{
     		LogUtility.LogException(m_Id.toString(),exc, LogUtility.LogLevels.LEVEL_LOG_HIGH);
     	}
-    	LogUtility.LogFile(m_Id.toString() + " Leaving ProprietarySegmentTransmit", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    	LogUtility.LogFile(m_Id.toString() + " Leaving ProprietarySegmentTransmit", ModuleLogLevel);
     	LeaveProprietarySegmentTxCriticalArea();
     	CheckConnectionAndShutDownIfGone();
     	if (IsRestartRequired)
@@ -383,14 +385,14 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
     }
     protected  void OnNonProprietarySegmentReceived(int Received)
     {
-    	LogUtility.LogFile(m_Id.toString() + " Entering OnNonProprietarySegmentReceived", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    	LogUtility.LogFile(m_Id.toString() + " Entering OnNonProprietarySegmentReceived", ModuleLogLevel);
     	EnterNonProprietarySegmentRxCriticalArea(true);
     	try
     	{
-    		LogUtility.LogFile("entered", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    		LogUtility.LogFile("entered", ModuleLogLevel);
     		if (!m_NonProprietarySegmentRxInProgress)
     		{
-    			LogUtility.LogFile("OnNonProprietarySegmentReceived: exiting, rx is not in progress", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    			LogUtility.LogFile("OnNonProprietarySegmentReceived: exiting, rx is not in progress", ModuleLogLevel);
     			LeaveNonProprietarySegmentRxCriticalArea();
     			return;
     		}
@@ -414,24 +416,24 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
     	{
     		LogUtility.LogException(m_Id.toString(),exc, LogUtility.LogLevels.LEVEL_LOG_HIGH);
     	}
-    	LogUtility.LogFile(m_Id.toString() + " Leaving OnNonProprietarySegmentReceived", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    	LogUtility.LogFile(m_Id.toString() + " Leaving OnNonProprietarySegmentReceived", ModuleLogLevel);
     	LeaveNonProprietarySegmentRxCriticalArea();
     	ReStartAllOperations(false);
     }
     protected void NonProprietarySegmentReceive()
     {
     	boolean IsRestartRequired = false;
-    	LogUtility.LogFile(m_Id.toString() + " Entering ReceiveNonProprietarySegment", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    	LogUtility.LogFile(m_Id.toString() + " Entering ReceiveNonProprietarySegment", ModuleLogLevel);
     	if (!EnterNonProprietarySegmentRxCriticalArea(false))
     	{
     		return;
     	}
     	try
     	{
-    		LogUtility.LogFile("entered", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    		LogUtility.LogFile("entered", ModuleLogLevel);
     		if (m_NonProprietarySegmentRxInProgress)
     		{
-    			LogUtility.LogFile("ReceiveNonProprietarySegment: exiting, rx is in progress", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    			LogUtility.LogFile("ReceiveNonProprietarySegment: exiting, rx is in progress", ModuleLogLevel);
     			LeaveNonProprietarySegmentRxCriticalArea();
     			return;
     		}
@@ -443,7 +445,7 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
     	{
     		LogUtility.LogException(m_Id.toString(),exc, LogUtility.LogLevels.LEVEL_LOG_HIGH);
     	}
-    	LogUtility.LogFile(m_Id.toString() + " Leaving ReceiveNonProprietarySegment", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+    	LogUtility.LogFile(m_Id.toString() + " Leaving ReceiveNonProprietarySegment", ModuleLogLevel);
     	LeaveNonProprietarySegmentRxCriticalArea();
     	CheckConnectionAndShutDownIfGone();
     	if (IsRestartRequired)

@@ -259,7 +259,8 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         {
             return false;
         }*/
-    	try
+    	return true;
+    	/*try
         {
             if (!m_destinationSideSocket.isConnected())
             {
@@ -274,7 +275,7 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         catch (Exception exc)
         {
             return false;
-        }
+        }*/
     }
     public boolean EnterProprietarySegmentTxCriticalArea(boolean wait)
     {
@@ -796,7 +797,14 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         {
             LogUtility.LogFile("incrementing dest stream  " + Integer.toString(sent), ModuleLogLevel);
             EnterDestinationStreamCriticalArea();
-            m_destinationStream.IncrementOffset((long)sent);
+            try
+            {
+                m_destinationStream.IncrementOffset((long)sent);
+            }
+            catch(Exception exc)
+            {
+            	LogUtility.LogException("EXCEPTION: ", exc, LogUtility.LogLevels.LEVEL_LOG_HIGH);
+            }
             LeaveDestinationStreamCriticalArea();
             LogUtility.LogFile("done  ", ModuleLogLevel);
         }
@@ -807,7 +815,14 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         {
             LogUtility.LogFile("incrementing client stream  " + Integer.toString(sent), ModuleLogLevel);
             EnterClientStreamCriticalArea();
-            m_clientStream.IncrementOffset((long)sent);
+            try
+            {
+                m_clientStream.IncrementOffset((long)sent);
+            }
+            catch(Exception exc)
+            {
+            	LogUtility.LogException("EXCEPTION: ", exc, LogUtility.LogLevels.LEVEL_LOG_HIGH);
+            }
             LeaveClientStreamCriticalArea();
             LogUtility.LogFile("done  ", ModuleLogLevel);
         }
@@ -847,6 +862,13 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         {
             if (!IsAlive())
             {
+            	if(m_clientSideSocket.isConnected())
+                {
+            		if ((!ClientTxInProgress())&&(IsClientTxQueueEmpty()))
+            		{
+                	    m_clientSideSocket.Disconnect();
+            		}
+                }
                 return;
             }
         }
