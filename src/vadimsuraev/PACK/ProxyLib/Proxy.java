@@ -77,7 +77,7 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
     protected MyMemoryStream m_clientStream;
     protected MyMemoryStream m_destinationStream;
     protected IOnGotResults m_OnGotResults;
-    protected boolean m_dest_connection_is_broken;
+    protected boolean m_OnceConnected;
     public static void InitGlobalObjects()
     {
         //PackClientSide.InitGlobalObjects();
@@ -120,7 +120,7 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         m_clientStream = new MyMemoryStream();
         m_destinationStream = new MyMemoryStream();
         m_OnGotResults = onGotResults;
-        m_dest_connection_is_broken = false;
+        m_OnceConnected = false;
         LogUtility.LogFile("Started at " + Long.toString((new Date().getTime())), LogUtility.LogLevels.LEVEL_LOG_HIGH);
     }
 
@@ -241,41 +241,16 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         return ret;
     }
     protected abstract boolean ClientTxInProgress();
-    protected void CheckConnectionAndShutDownIfGone()
-    {
-        return;
-    }
+    
     protected boolean IsAlive()
     {
-        /*try
-        {
-            if ((!m_destinationSideSocket.isConnected())||(m_dest_connection_is_broken))
-            {
-                LogUtility.LogFile(m_Id.toString() +" Socket disconnected ", ModuleLogLevel);
-            }
-            return (m_destinationSideSocket.isConnected()&&(!m_dest_connection_is_broken));
-        }
-        catch (Exception exc)
-        {
-            return false;
-        }*/
+    	if((!m_destinationSideSocket.isConnected())&&
+    	  (!ClientTxInProgress())&&
+    	  (IsClientTxQueueEmpty()))
+    	{
+    	    return false;
+    	}
     	return true;
-    	/*try
-        {
-            if (!m_destinationSideSocket.isConnected())
-            {
-            	if ((ClientTxInProgress()) || (!IsClientTxQueueEmpty()))
-            	{
-            		return true;
-            	}
-                LogUtility.LogFile(m_Id.toString() +" Socket disconnected ", ModuleLogLevel);
-            }
-            return m_destinationSideSocket.isConnected();
-        }
-        catch (Exception exc)
-        {
-            return false;
-        }*/
     }
     public boolean EnterProprietarySegmentTxCriticalArea(boolean wait)
     {
@@ -862,13 +837,7 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         {
             if (!IsAlive())
             {
-            	if(m_clientSideSocket.isConnected())
-                {
-            		if ((!ClientTxInProgress())&&(IsClientTxQueueEmpty()))
-            		{
-                	    m_clientSideSocket.Disconnect();
-            		}
-                }
+            	Dispose();
                 return;
             }
         }
@@ -889,23 +858,17 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         
         try
         {
-            //m_clientSideDiscAsyncArgs.DisconnectReuseSocket = false;
-            //clientSideSocket.DisconnectAsync(m_clientSideDiscAsyncArgs);
+        	if((m_clientSideSocket != null)&&(m_clientSideSocket.isConnected()))
+        	{
+        		m_clientSideSocket.Disconnect();
+               LogUtility.LogFile(m_Id.toString() + "  client disconnect initiated ", ModuleLogLevel);
+               return;
+        	}
         }
         catch (Exception exc)
         {
-            LogUtility.LogException(idStr,exc , LogUtility.LogLevels.LEVEL_LOG_HIGH);
         }
-        /*try
-        {
-//            clientSideSocket.BeginDisconnect(false, new AsyncCallback(OnClientDisconnected), null);
-            m_clientSideSocket.Disconnect();
-        }
-        catch (Exception exc)
-        {
-        	LogUtility.LogException(idStr,exc, LogUtility.LogLevels.LEVEL_LOG_HIGH);
-        }*/
-       // m_dest_connection_is_broken = true;
+        CleanUp();
     }
 
     protected void OnClientDisconnected()
@@ -988,8 +951,24 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
     {
         try
         {
-            m_destinationSideSocket.Disconnect();
-            LogUtility.LogFile(m_Id.toString() + "  connection is broken - DONE ", ModuleLogLevel);
+        	if((m_destinationSideSocket != null)&&(m_destinationSideSocket.isConnected()))
+        	{
+               m_destinationSideSocket.Disconnect();
+               LogUtility.LogFile(m_Id.toString() + "  destination disconnect initiated ", ModuleLogLevel);
+               return;
+        	}
+        }
+        catch (Exception exc)
+        {
+        }
+        try
+        {
+        	if((m_clientSideSocket != null)&&(m_clientSideSocket.isConnected()))
+        	{
+        		m_clientSideSocket.Disconnect();
+               LogUtility.LogFile(m_Id.toString() + "  client disconnect initiated ", ModuleLogLevel);
+               return;
+        	}
         }
         catch (Exception exc)
         {

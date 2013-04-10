@@ -1,6 +1,5 @@
 ﻿package vadimsuraev.PACK.ProxyLib.Server;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.channels.SocketChannel;
 
 import vadimsuraev.LogUtility.*;
@@ -15,7 +14,6 @@ import vadimsuraev.PACK.ProxyLib.RxTxStateMachine.*;
 public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
 {
     protected boolean m_ErrorSent;
-    protected boolean m_OnceConnected;
 
     public ServerSideProxy(SocketChannel sock)
     {
@@ -27,7 +25,6 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
         m_txStateMachine.SetEndPoint(m_Id);
         m_destinationSideSocket = null;
         m_ErrorSent = false;
-        m_OnceConnected = false;
     }
     
     protected void _OnProprietarySegmentTransmitted(int transmitted)
@@ -77,6 +74,7 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
             {
                 LogUtility.LogFile("!!!Proprietary: transferred < 0", LogUtility.LogLevels.LEVEL_LOG_HIGH3);
                 LeaveProprietarySegmentTxCriticalArea();
+                ReStartAllOperations(!m_OnceConnected);
                 return;
             }
             m_TransmittedClient += (long)Ret;
@@ -303,7 +301,7 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
         }
         LogUtility.LogFile(m_Id.toString() + " Leaving ProprietarySegmentTransmit", ModuleLogLevel);
         LeaveProprietarySegmentTxCriticalArea();
-        if (IsRestartRequired)
+        /*if (IsRestartRequired)*/
         {
             ReStartAllOperations(!m_OnceConnected);
         }
@@ -392,8 +390,6 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
             if (Received <= 0)
             {
                 LogUtility.LogFile(m_Id.toString() + " Rx ERROR ", ModuleLogLevel);
-                CheckConnectionAndShutDownIfGone();
-                Dispose();
                 LeaveNonProprietarySegmentRxCriticalArea();
                 ReStartAllOperations(!m_OnceConnected);
                 return;
@@ -461,10 +457,9 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
         }
         LogUtility.LogFile(m_Id.toString() + " Leaving NonProprietarySegmentReceive", ModuleLogLevel);
         LeaveNonProprietarySegmentRxCriticalArea();
-        CheckConnectionAndShutDownIfGone();
-        if (IsRestartRequired)
+        /*if (IsRestartRequired)*/
         {
-            ReStartAllOperations(false);
+            ReStartAllOperations(!m_OnceConnected);
         }
     }
     boolean _NonProprietarySegmentTransmit(byte []data)
@@ -542,8 +537,7 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
         }
         LogUtility.LogFile(m_Id.toString() + " Leaving NonProprietarySegmentTransmit", ModuleLogLevel);
         LeaveNonProprietarySegmentTxCriticalArea();
-        CheckConnectionAndShutDownIfGone();
-        if (IsRestartRequired)
+        /*if (IsRestartRequired)*/
         {
             ReStartAllOperations(!m_OnceConnected);
         }
@@ -603,6 +597,7 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
             {
                 LogUtility.LogFile(" Rx ERROR, ", ModuleLogLevel);
                 LeaveProprietarySegmentRxCriticalArea();
+                Dispose();
                 return;
             }
             LogUtility.LogFile("Received (proprietary segment) " + Long.toString(Received), ModuleLogLevel);
@@ -649,9 +644,9 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
         }
         LogUtility.LogFile(m_Id.toString() + " Leaving ProprietarySegmentReceive", ModuleLogLevel);
         LeaveProprietarySegmentRxCriticalArea();
-        if (IsRestartRequired)
+        /*if (IsRestartRequired)*/
         {
-            ReStartAllOperations(false);
+            ReStartAllOperations(!m_OnceConnected);
         }
     }
     protected boolean ClientTxInProgress()
