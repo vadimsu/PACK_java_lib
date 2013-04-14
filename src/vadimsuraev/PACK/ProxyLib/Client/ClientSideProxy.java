@@ -412,7 +412,7 @@ public class ClientSideProxy extends Proxy implements OnMessageCallback
     			LogUtility.LogFile(m_Id.toString() + " OnClientReceive error ", LogUtility.LogLevels.LEVEL_LOG_HIGH);
     			m_NonProprietarySegmentRxInProgress = false;
     			LeaveNonProprietarySegmentRxCriticalArea();
-    			Dispose();
+    			//Dispose();
     			return;
     		}
     		m_ReceivedClient += (long)Received;

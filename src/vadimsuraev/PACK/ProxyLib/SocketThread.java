@@ -139,7 +139,7 @@ class SocketThread extends Thread
 			}
 			else
 			{
-				//LogUtility.LogFile("ERROR: selector is  " + ((m_selector == null) ? "null " : " not null") + " registered " + Boolean.toString(sc.isRegistered()), LogUtility.LogLevels.LEVEL_LOG_HIGH);
+				LogUtility.LogFile("ERROR: selector is  " + ((m_selector == null) ? "null " : " not null") + " registered " + Boolean.toString(sc.isRegistered()), LogUtility.LogLevels.LEVEL_LOG_HIGH);
 			}
 			sk = sc.register(m_selector, ops | SelectionKey.OP_READ);
 		} catch (ClosedChannelException e) {
@@ -169,7 +169,7 @@ class SocketThread extends Thread
 			}
 			else
 			{
-				//LogUtility.LogFile("ERROR: selector is  " + ((m_selector == null) ? "null " : " not null") + " registered " + Boolean.toString(sc.isRegistered()), LogUtility.LogLevels.LEVEL_LOG_HIGH);
+				LogUtility.LogFile("ERROR: selector is  " + ((m_selector == null) ? "null " : " not null") + " registered " + Boolean.toString(sc.isRegistered()), LogUtility.LogLevels.LEVEL_LOG_HIGH);
 			}
 			sk = sc.register(m_selector, ops | SelectionKey.OP_WRITE);
 		} catch (ClosedChannelException e) {
@@ -256,15 +256,15 @@ class SocketThread extends Thread
 		{
 			try 
 			{
-				LogUtility.LogFile("before select ", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+				/*LogUtility.LogFile("before select ", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);*/
 				readyChannels = m_selector.select(500);
-				LogUtility.LogFile("after select ", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+				/*LogUtility.LogFile("after select ", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);*/
 				//System.out.println(" Proxy socket, got " + readyChannels + " channels");
 				m_ActionQueueMutex.lock();
-				if(m_ActionQueue.size() > 0)
+				/*if(m_ActionQueue.size() > 0)
 				{
 				    LogUtility.LogFile("selector returned " + Long.toString(m_ActionQueue.size()), LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
-				}
+				}*/
 				while(m_ActionQueue.size() > 0)
 				{
 					entry = m_ActionQueue.removeFirst();
@@ -293,20 +293,34 @@ class SocketThread extends Thread
 						;
 					}
 				}
-				m_ActionQueueMutex.unlock();
 				if(readyChannels == 0)
 				{
-					continue;
+					//continue;
 				}
 			} catch (IOException e) 
 			{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			finally
+			{
+				m_ActionQueueMutex.unlock();
+			}
 			Set<SelectionKey> selectedKeys = m_selector.selectedKeys();
 
 			Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
 			ProxySocket proxySocket = null;
+			/*boolean isAlternativeList = false;
+			if(!keyIterator.hasNext())
+			{
+				keyIterator = m_SelectionKeys.iterator();
+				isAlternativeList = true;
+				LogUtility.LogFile("alternative list ", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+			}
+			else
+			{
+				LogUtility.LogFile("NON-alternative list ", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+			}*/
 			while(keyIterator.hasNext()) 
 			{
 				LogUtility.LogFile("next key ", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
@@ -317,14 +331,15 @@ class SocketThread extends Thread
 					{
 						//System.out.println(" Readable");
 						proxySocket = (ProxySocket) key.attachment();
-						ops = key.interestOps() & ~(SelectionKey.OP_READ);
+						key.interestOps(key.interestOps() & ~(SelectionKey.OP_READ));
+						/*ops = key.interestOps() & ~(SelectionKey.OP_READ);
 						try {
 							SelectionKey key2 = key.channel().register(m_selector, ops);
 							key2.attach(proxySocket);
 						} catch (ClosedChannelException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
-						}
+						}*/
 						if(proxySocket == null)
 						{
 							System.out.println(" read attachment is null!!!!");
@@ -339,14 +354,23 @@ class SocketThread extends Thread
 					{
 						//System.out.println(" Writeable");
 						proxySocket = (ProxySocket) key.attachment();
-					    ops = key.interestOps() & ~(SelectionKey.OP_WRITE);
+						key.interestOps(key.interestOps() & ~(SelectionKey.OP_WRITE));
+					    /*ops = key.interestOps() & ~(SelectionKey.OP_WRITE);
 						try {
+							if(proxySocket != null)
+							{
+								if(proxySocket.IsReadInitiated())
+								{
+									LogUtility.LogFile("adding read ", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
+									ops |= SelectionKey.OP_READ;
+								}
+							}
 							SelectionKey key2 = key.channel().register(m_selector, ops);
 							key2.attach(proxySocket);
 						} catch (ClosedChannelException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
-						}
+						}*/
 						if(proxySocket == null)
 						{
 							System.out.println(" write attachment is null!!!!");
@@ -382,7 +406,14 @@ class SocketThread extends Thread
 				    	proxySocket.OnClosed();
 				    }
 				}
-				keyIterator.remove();
+				//if(key.interestOps() == 0)
+				{
+				    keyIterator.remove();
+				}
+				/*if(!isAlternativeList)
+				{
+					m_SelectionKeys.remove(key);
+				}*/
 			}
 		}
 	}

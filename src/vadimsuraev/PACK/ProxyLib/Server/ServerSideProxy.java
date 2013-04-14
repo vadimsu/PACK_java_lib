@@ -73,6 +73,7 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
             if (Ret <= 0)
             {
                 LogUtility.LogFile("!!!Proprietary: transferred < 0", LogUtility.LogLevels.LEVEL_LOG_HIGH3);
+                m_ProprietarySegmentTxInProgress = false;
                 LeaveProprietarySegmentTxCriticalArea();
                 ReStartAllOperations(!m_OnceConnected);
                 return;
@@ -85,7 +86,7 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
                 if (IsClientTxQueueEmpty())
                 {
                     LogUtility.LogFile(m_Id.toString() + "OnProprietarySegmentTransmitted: queue is empty and error is sent", LogUtility.LogLevels.LEVEL_LOG_HIGH3);
-                    Dispose();
+                 //   Dispose();
                     LeaveProprietarySegmentTxCriticalArea();
                     return;
                 }
@@ -211,6 +212,11 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
     }
     protected void ProprietarySegmentTransmit()
     {
+    	if((m_clientSideSocket == null)||(!m_clientSideSocket.isConnected()))
+    	{
+    		LogUtility.LogFile(" ProprietarySegmentTransmit: socket is disconnected. return", ModuleLogLevel);
+    		return;
+    	}
     	boolean IsRestartRequired = false;
         byte[] buff2transmit;
         MyMemoryStream stream = new MyMemoryStream();
@@ -301,7 +307,7 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
         }
         LogUtility.LogFile(m_Id.toString() + " Leaving ProprietarySegmentTransmit", ModuleLogLevel);
         LeaveProprietarySegmentTxCriticalArea();
-        /*if (IsRestartRequired)*/
+        if (IsRestartRequired)
         {
             ReStartAllOperations(!m_OnceConnected);
         }
@@ -390,6 +396,7 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
             if (Received <= 0)
             {
                 LogUtility.LogFile(m_Id.toString() + " Rx ERROR ", ModuleLogLevel);
+                m_NonProprietarySegmentRxInProgress = false;
                 LeaveNonProprietarySegmentRxCriticalArea();
                 ReStartAllOperations(!m_OnceConnected);
                 return;
@@ -422,6 +429,11 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
     }
     protected void NonProprietarySegmentReceive()
     {
+    	if((m_destinationSideSocket == null)||(!m_destinationSideSocket.isConnected()))
+    	{
+    		LogUtility.LogFile(" NonProprietarySegmentReceive: socket is disconnected. return", ModuleLogLevel);
+    		return;
+    	}
         boolean IsRestartRequired = false;
         LogUtility.LogFile(m_Id.toString() + " Entering NonProprietarySegmentReceive", ModuleLogLevel);
         if (!EnterNonProprietarySegmentRxCriticalArea(false))
@@ -500,6 +512,11 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
     }
     protected void NonProprietarySegmentTransmit()
     {
+    	if((m_destinationSideSocket == null)||(!m_destinationSideSocket.isConnected()))
+    	{
+    		LogUtility.LogFile(" NonProprietarySegmentTransmit: socket is disconnected. return", ModuleLogLevel);
+    		return;
+    	}
         boolean IsRestartRequired = false;
         LogUtility.LogFile(m_Id.toString() + " Entering NonProprietarySegmentTransmit", ModuleLogLevel);
         if (!EnterNonProprietarySegmentTxCriticalArea(false))
@@ -537,7 +554,7 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
         }
         LogUtility.LogFile(m_Id.toString() + " Leaving NonProprietarySegmentTransmit", ModuleLogLevel);
         LeaveNonProprietarySegmentTxCriticalArea();
-        /*if (IsRestartRequired)*/
+        if (IsRestartRequired)
         {
             ReStartAllOperations(!m_OnceConnected);
         }
@@ -596,8 +613,9 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
             if (Received <= 0)
             {
                 LogUtility.LogFile(" Rx ERROR, ", ModuleLogLevel);
+                m_ProprietarySegmentRxInProgress = false;
                 LeaveProprietarySegmentRxCriticalArea();
-                Dispose();
+               // Dispose();
                 return;
             }
             LogUtility.LogFile("Received (proprietary segment) " + Long.toString(Received), ModuleLogLevel);
@@ -616,6 +634,11 @@ public abstract class ServerSideProxy extends Proxy implements OnMessageCallback
     }
     protected void ProprietarySegmentReceive()
     {
+    	if((m_clientSideSocket == null)||(!m_clientSideSocket.isConnected()))
+    	{
+    		LogUtility.LogFile(" ProprietarySegmentReceive: socket is disconnected. return", ModuleLogLevel);
+    		return;
+    	}
         boolean IsRestartRequired = false;
         LogUtility.LogFile(m_Id.toString() + " Entering ProprietarySegmentReceive", ModuleLogLevel);
         if (!EnterProprietarySegmentRxCriticalArea(false))

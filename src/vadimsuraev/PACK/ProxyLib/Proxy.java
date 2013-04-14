@@ -244,9 +244,11 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
     
     protected boolean IsAlive()
     {
-    	if((!m_destinationSideSocket.isConnected())&&
-    	  (!ClientTxInProgress())&&
-    	  (IsClientTxQueueEmpty()))
+    	if(((m_destinationSideSocket == null)&&(m_OnceConnected))||
+    	   ((m_destinationSideSocket != null)&&
+    	    (!m_destinationSideSocket.isConnected())&&
+    	   (!ClientTxInProgress())&&
+    	   (IsClientTxQueueEmpty())))
     	{
     	    return false;
     	}
@@ -566,6 +568,10 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
     }
     public boolean IsClientTxQueueEmpty()
     {
+    	if(m_clientTxQueue == null)
+    	{
+    		return true;
+    	}
         try
         {
             int count;
@@ -858,6 +864,7 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         
         try
         {
+        	m_destinationSideSocket.Close();
         	if((m_clientSideSocket != null)&&(m_clientSideSocket.isConnected()))
         	{
         		m_clientSideSocket.Disconnect();
@@ -876,6 +883,7 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
         LogUtility.LogFile(m_Id.toString() + " OnClientDisconnected", LogUtility.LogLevels.LEVEL_LOG_HIGH);
         try
         {
+        	m_clientSideSocket.Close();
             CleanUp();
         }
         catch (Exception exc)
@@ -935,6 +943,8 @@ public abstract class Proxy implements SocketCallbacks, IOnGotResults
             m_rxStateMachine = null;
             m_destinationSideSocket = null;
             m_clientSideSocket = null;
+            m_destinationStream.Clear();
+            m_destinationStream.close();
             LogUtility.LogFile("ID " + m_Id.toString() + " TransmittedClient " + Long.toString(m_TransmittedClient) + " ReceivedClient " + Long.toString(m_ReceivedClient) + " TransmittedServer " + Long.toString(m_TransmittedServer) + " ReceivedServer " + Long.toString(m_ReceivedServer) + " TransmittedMsgsClient " + Long.toString(m_TransmittedMsgsClient) + " ReceivedMsgs " + Long.toString(m_ReceivedMsgs) + " SubmittedMsgsClient " + Long.toString(m_SubmittedMsgsClient) + " SubmittedMsgsServer " + Long.toString(m_SubmittedMsgsServer) + " SubmittedClient " + Long.toString(m_SubmittedClient) + " SubmittedServer " + Long.toString(m_SubmittedServer) + " Saved " + GetSaved() + " PreSaved " + GetPreSaved() + " PostSaved " + GetPostSaved(), LogUtility.LogLevels.LEVEL_LOG_HIGH);
             Disposed();
             m_disposeMutex = null;

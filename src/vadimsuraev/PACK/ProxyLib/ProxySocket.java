@@ -57,6 +57,7 @@ public class ProxySocket
 	LinkedList<TxQueueEntry> m_txQueue;
 	String m_name;
 	static SocketThread m_SocketThread;
+	boolean m_IsConnected;
 	void GenericInit(String name,Object data,SocketCallbacks socketCallbacks)
 	{
 		if(m_SocketThread == null)
@@ -85,6 +86,7 @@ public class ProxySocket
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		m_IsConnected = true;
     }
     public ProxySocket(String name,Object data,SocketCallbacks socketCallbacks)
     {
@@ -97,6 +99,7 @@ public class ProxySocket
     	{
 			e.printStackTrace();
 		}
+    	m_IsConnected = false;
     	System.out.println(m_name + " Proxy socket (not connected) ");
     }
     public ProxySocket(String name,Object data,SocketAcceptCallback socketAcceptCallback)
@@ -116,6 +119,7 @@ public class ProxySocket
     	m_ReadMutex = null;
     	m_WriteMutex = null;
     	m_txQueue = null;
+    	m_IsConnected = false;
     	try {
 			m_SocketChannel = ServerSocketChannel.open();
 		} catch (IOException e1) {
@@ -146,6 +150,7 @@ public class ProxySocket
     }
     public void OnConnected()
     {
+    	m_IsConnected = true;
     	m_SocketCallbacks.OnConnected();
     }
     public void OnAccept()
@@ -157,6 +162,37 @@ public class ProxySocket
 			e.printStackTrace();
 		}
     	m_SocketAcceptCallback.OnAccepted(socketChannel);
+    }
+    public boolean IsReadInitiated()
+    {
+    	return (m_CurrentReceiveBuffer != null);
+    }
+    public void Close()
+    {
+    	if(m_SelectionKey != null)
+    	{
+    		try {
+    		    m_SelectionKey.cancel();
+    		}
+    		catch(Exception e)
+    		{
+    			e.printStackTrace();
+    		}
+    	}
+    	if(m_SocketChannel != null)
+    	{
+    	    try {
+				m_SocketChannel.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+    	if(m_txQueue != null)
+    	{
+    		m_txQueue.clear();
+    	}
+    	m_CurrentReceiveBuffer = null;
     }
     public void OnRead()
     {
@@ -172,17 +208,25 @@ public class ProxySocket
     	m_CurrentReceiveOffset = 0;
     	m_CurrentReceiveCount = 0;
     	m_ReadMutex.unlock();
+    	if(buf == null)
+    	{
+    		LogUtility.LogFile("read not requested ", LogUtility.LogLevels.LEVEL_LOG_HIGH);
+    		return;
+    	}
     	ByteBuffer dst = ByteBuffer.wrap(buf);
     	dst.position(offset);
     	dst.limit(offset+count);
     	int bytesRead = 0;
     	try {
     		bytesRead = ((SocketChannel)m_SocketChannel).read(dst);
-    		if(bytesRead != count)
+    		if(bytesRead < 0 )
     		{
-    			LogUtility.LogFile("Actually read " + Long.toString(bytesRead) + " needed " + Long.toString(count), LogUtility.LogLevels.LEVEL_LOG_HIGH);
+    			m_SocketCallbacks.OnConnectionBroken(m_data);
+    			return;
     		}
+    		LogUtility.LogFile("Actually read " + Long.toString(bytesRead), LogUtility.LogLevels.LEVEL_LOG_HIGH);
 		} catch (IOException e) {
+			LogUtility.LogException("EXCEPTION: ",e , LogUtility.LogLevels.LEVEL_LOG_HIGH);
 			m_SocketCallbacks.OnConnectionBroken(m_data);
 			return;
 		}
@@ -206,30 +250,23 @@ public class ProxySocket
     				LogUtility.LogFile("Send buffer is smaller!!! " + Long.toString(((SocketChannel)m_SocketChannel).socket().getSendBufferSize()) + " required " + Long.toString(src.remaining()) + " " + Long.toString(txQueueEntry.GetCount()), LogUtility.LogLevels.LEVEL_LOG_HIGH);
     				((SocketChannel)m_SocketChannel).socket().setSendBufferSize(src.remaining());
     			}
-    			else
-    			{
-    				LogUtility.LogFile("Send buffer is ok!!! " + Long.toString(((SocketChannel)m_SocketChannel).socket().getSendBufferSize()) + " required " + Long.toString(src.remaining()) + " " + Long.toString(txQueueEntry.GetCount()), LogUtility.LogLevels.LEVEL_LOG_HIGH);
-    			}
-				int writtenThisTime = ((SocketChannel)m_SocketChannel).write(src);
+    			int writtenThisTime = ((SocketChannel)m_SocketChannel).write(src);
 				if(writtenThisTime <= 0)
 				{
-					LogUtility.LogFile("write failed ", LogUtility.LogLevels.LEVEL_LOG_MEDIUM);
-					break;
+					LogUtility.LogFile("write failed ", LogUtility.LogLevels.LEVEL_LOG_HIGH);
+					m_WriteMutex.unlock();
+					m_SocketCallbacks.OnConnectionBroken(m_data);
+					return;
 				}
-				if(writtenThisTime != txQueueEntry.GetCount())
-	    		{
-	    			LogUtility.LogFile("Actually written " + Long.toString(writtenThisTime) + " needed " + Long.toString(txQueueEntry.GetCount()), LogUtility.LogLevels.LEVEL_LOG_HIGH);
-	    		}
+				LogUtility.LogFile("written " + Long.toString(writtenThisTime), LogUtility.LogLevels.LEVEL_LOG_HIGH);
 				written += writtenThisTime;
 				m_txQueue.removeFirst();
+				LogUtility.LogFile("queue len " + Long.toString(m_txQueue.size()), LogUtility.LogLevels.LEVEL_LOG_HIGH);
 			} 
     		catch (IOException e) 
     		{
     			m_WriteMutex.unlock();
-    			ByteArrayOutputStream os = new ByteArrayOutputStream();
-                PrintStream ps = new PrintStream(os);
-                e.printStackTrace(ps);
-                LogUtility.LogFile("EXEPTION: " + os.toString(), LogUtility.LogLevels.LEVEL_LOG_HIGH);
+                LogUtility.LogException("EXEPTION: ",e, LogUtility.LogLevels.LEVEL_LOG_HIGH);
     			m_SocketCallbacks.OnConnectionBroken(m_data);
     			return;
 			}
@@ -240,6 +277,8 @@ public class ProxySocket
     }
     public void OnClosed()
     {
+    	LogUtility.LogFile("OnClosed", LogUtility.LogLevels.LEVEL_LOG_HIGH);
+    	m_IsConnected = false;
     	m_SocketCallbacks.OnConnectionBroken(m_data);
     }
     int InitiateReceive(byte []buffer,int offset,int count)
@@ -329,7 +368,8 @@ public class ProxySocket
     }
     public boolean isConnected()
     {
-    	return ((SocketChannel)m_SocketChannel).socket().isConnected();
+    	return m_IsConnected;
+    	//return ((SocketChannel)m_SocketChannel).socket().isConnected();
     }
     public void ServerClose()
     {

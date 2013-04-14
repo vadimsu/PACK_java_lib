@@ -80,7 +80,7 @@ class WriteChunkChainsThread extends Thread
 	static void FlushIfRequired()
 	{
 		m_FlushSwTimer++;
-		if (m_FlushSwTimer == 20)
+		if (m_FlushSwTimer == 200)
 		{
 			m_FlushSwTimer = -1;
 			try
@@ -129,6 +129,7 @@ class WriteChunkChainsThread extends Thread
                             LogUtility.LogFile("Saved chain " + Integer.toString(ch2Sv.GetChunkList().size()) + " " + Integer.toString(ch2Sv.GetFirstNonMatchingChunk()) + " " + Integer.toString(ch2Sv.GetLastNonMatchingChunk()) + " " + Integer.toString(ch2Sv.GetFirstNonMatchingChunkOffset()), LogUtility.LogLevels.LEVEL_LOG_HIGH);
                         }
                     }
+                    list.clear();
                 }
                 FlushIfRequired();
             }

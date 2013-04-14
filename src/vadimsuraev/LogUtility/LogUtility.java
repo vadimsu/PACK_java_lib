@@ -131,6 +131,23 @@ public class LogUtility extends Thread
         exc.printStackTrace(ps);
         LogFile(os.toString(),level);
     }
+    static void Write2File(String entry)
+    {
+    	ReferencedInteger reallLength = new ReferencedInteger();
+        byte[] buff = GetBytes(entry, reallLength);
+        try {
+			m_fs.write(buff, 0, reallLength.val);
+			m_fs.flush();
+            //fs.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+    static void Write2Std(String entry)
+    {
+    	System.out.println(entry);
+    }
     static boolean RetrieveEntryAndWrite(LinkedList<String> entriesList,String filename)
     {
         String entry = null;
@@ -142,16 +159,8 @@ public class LogUtility extends Thread
         m_LogQueueMutex.unlock();
         if (entry != null)
         {
-            ReferencedInteger reallLength = new ReferencedInteger();
-            byte[] buff = GetBytes(entry, reallLength);
-            try {
-				m_fs.write(buff, 0, reallLength.val);
-				m_fs.flush();
-	            //fs.close();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+            //Write2File(entry);
+        	Write2Std(entry);
             entry = null;
             return true;
         }
